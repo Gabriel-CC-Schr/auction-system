@@ -3,6 +3,11 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="BackendCodeEditorMiscSettings">
+    <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue" value="true" type="bool" />
+    <option name="/Default/RiderDebugger/RiderRestoreDecompile/RestoreDecompileSetting/@EntryValue" value="false" type="bool" />
+  </component>
   <component name="CMakeProjectFlavorService">
     <option name="flavorId" value="CMakePlainProjectFlavor" />
   </component>
@@ -12,28 +17,7 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fee81a13-3275-4139-8f4a-d3bf79d7e146" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auth.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auth.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/config.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/config.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/controllers.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/controllers.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/dashboard.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/db.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/db.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/error.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/login.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/profile.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/register.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/routes.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/routes.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils.h" afterDir="false" />
-    </list>
+    <list default="true" id="fee81a13-3275-4139-8f4a-d3bf79d7e146" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -53,13 +37,13 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 8
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
   <component name="ProjectId" id="32FzDigngT3XP65InybSkFltGbz" />
-  <component name="ProjectStatusUIService"><![CDATA[{
-  "uiKindId": "Widget"
-}]]></component>
+  <component name="ProjectStatusUIService">{
+  &quot;uiKindId&quot;: &quot;Widget&quot;
+}</component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -75,7 +59,7 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "Back-End-Branch",
     "ignore.virus.scanning.warn.message": "true",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
