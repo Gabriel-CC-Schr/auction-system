@@ -16,9 +16,6 @@ HDE::socket_handler socket::socket_handler(int domain, int service, int protocol
     // Establish socket
     sock = socket(domain, service, protocol);
     test_connection(sock);
-    // Establish network connection
-    connection = connect_to_netork(sock, address);
-    test_connection(connection);
 }
 
 // Test connection virtual function
@@ -45,4 +42,9 @@ return sock;
 int HDE::socket_handler::get_connection(){
 return connection;
 }
-/
+
+// Setter functions
+
+void HDE::socket_handler::set_connection(int con){
+    connection = con;
+}
