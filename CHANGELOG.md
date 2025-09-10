@@ -1,5 +1,15 @@
 # Changes
 
+## Create CSS and javascript log in file 9/10/25
+
+---
+
+### **Gabriel** 
+
+Implemented HTML, CSS, Javascript for loging in and register 
+
+
+
 ## Remove 3 files 9/9/2025
 
 ---
