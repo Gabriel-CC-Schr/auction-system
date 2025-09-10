@@ -1,5 +1,11 @@
 # Changes
 
+## Remove 3 files 9/9/2025
+
+---
+### **Gabriel**
+Removed Socket, Bind, and connect
+
 
 
 ## Trying to Fit Gabriel's Stucture 9/7/25
