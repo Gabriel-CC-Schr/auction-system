@@ -20,5 +20,13 @@ int main() {
         std::cout << line << std::endl;
     }
 
+    htmlFile.close();
+
+    ShellExecuteA(NULL, "open", "chrome.exe", "http://localhost/cgi-bin/testing.exe", // Adjust to your actual CGI path
+        NULL,
+        SW_SHOWNORMAL
+    );
+
+
     return 0;
 }
