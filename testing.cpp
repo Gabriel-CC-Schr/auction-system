@@ -4,6 +4,13 @@
 #include <windows.h>
 
 int main() {
+
+    ShellExecuteA(NULL, "open", "chrome.exe", "http://localhost/cgi-bin/testing.cgi", // Adjust to your actual CGI path
+            NULL,
+            SW_SHOWNORMAL
+        );
+
+
     // Output the HTTP header
     std::cout << "Content-Type: text/html\r\n\r\n";
 
@@ -22,10 +29,6 @@ int main() {
 
     htmlFile.close();
 
-    ShellExecuteA(NULL, "open", "chrome.exe", "http://localhost/cgi-bin/testing.exe", // Adjust to your actual CGI path
-        NULL,
-        SW_SHOWNORMAL
-    );
 
 
     return 0;
