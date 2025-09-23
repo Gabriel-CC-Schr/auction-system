@@ -18,7 +18,7 @@ int main() {
 //    while (std::getline(htmlFile, line)) {
 //        std::cout << line << std::endl;
 //    }
-    
+
     printf ("<!DOCTYPE html>\n");
     printf ("<html lang=\"en\">\n");
     printf ("  <head>\n\");\n");
