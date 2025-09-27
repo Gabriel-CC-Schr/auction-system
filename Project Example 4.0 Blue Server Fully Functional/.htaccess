@@ -1,0 +1,13 @@
+# Enable CGI in this folder
+Options +ExecCGI
+AddHandler cgi-script .cgi
+
+# Security headers
+Header set X-Content-Type-Options nosniff
+Header set X-Frame-Options SAMEORIGIN
+Header set X-XSS-Protection "1; mode=block"
+
+# Block source exposure
+<Files "*.cpp">
+  Require all denied
+</Files>
