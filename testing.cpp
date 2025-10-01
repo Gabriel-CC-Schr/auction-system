@@ -2,9 +2,8 @@
 #include <fstream>
 #include <string>
 
-#include
 
-int main() {
+int til() {
     // Output the HTTP header
     std::cout << "Content-Type: text/html\r\n\r\n";
 
