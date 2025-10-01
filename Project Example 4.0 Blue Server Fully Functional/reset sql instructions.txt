@@ -1,0 +1,25 @@
+-- reset.sql — remove all schema objects but keep the database
+USE cs370_section2_allindragons;
+
+-- If you created any views, drop them first
+DROP VIEW IF EXISTS v_user_purchases;
+
+-- Drop tables (disable FKs so order doesn't matter)
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS bids;
+DROP TABLE IF EXISTS auctions;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS users;
+SET FOREIGN_KEY_CHECKS = 1;
+
+Run it:
+
+mysql -u cs370_section2_allindragons -p cs370_section2_allindragons < reset.sql
+
+
+Verify it’s empty:
+
+mysql -u cs370_section2_allindragons -p cs370_section2_allindragons -e "SHOW TABLES;"
+
+
+(Should return no rows.)
