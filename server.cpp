@@ -3,13 +3,23 @@
 //
 
 #include <iostream>
-#include "monhoose.h";
+#include "mongoose.h"
 #include <string>
 
 using namespace std;
 
 // Struct containing settings for how to server htth with mongoose
-stactic struct mg_server_http_opst s_http_opst;
+stactic struct mg_server_http_opst s_http_server_opts;
+
+// Event handler
+static void ev_hanfler(struct mg_connection *nc, int ev, void *p){
+    //if event is a htpp request
+    if(ev == MG_EV_HTTP_REQUEST){
+        // Server static html files
+        mg_server_htto(nc, (stuct http_message *) p, s_http_server_opts);
+
+}
+}
 
 int initServer(int port){
 
@@ -30,7 +40,7 @@ int initServer(int port){
 
     // If the connection fails
     if (nc == NULL) {
-        cout << Failed to create listener" << endl;
+        cout << "Failed to create listener" << endl;
         return -1;
     }
 
@@ -42,7 +52,7 @@ int initServer(int port){
     s_http_server_opts.enable_directory_listing = "yes";
 
     for(;;){
-        mg)mgr_poll(&mgr, 1000);
+        mg_mgr_poll(&mgr, 1000);
     }
 
     //Free up all memory allocate
@@ -55,7 +65,7 @@ int initServer(int port){
 
 int main(void){
     int port;
-    cout << Select server port" << endl;
+    cout << "Select server port" << endl;
 
     cin >> port;
 
