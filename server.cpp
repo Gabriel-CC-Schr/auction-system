@@ -3,12 +3,14 @@
 //
 
 #include <iostream>
+#include "monhoose.h";
 #include <string>
-#include <sstream>
-#include <fstream>
-#include <map>
-#include <sys/stock.h>
-#include <netinet/in.h>
-#include <unistd.h>
+
 using namespace std;
 
+// Struct containing settings for how to server htth with mongoose
+stactic struct mg_server_http_opst s_http_opst;
+
+int main(void){
+
+}
