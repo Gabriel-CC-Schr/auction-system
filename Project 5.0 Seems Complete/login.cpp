@@ -141,7 +141,6 @@ int main() {
     }
     string email = getPostValue(postData, "email");            // user's email
     string password = getPostValue(postData, "password");      // user's password
-    string confirmPassword = getPostValue(postData, "confirm_password");  // for registration
     
     // Connect to MySQL database
     MYSQL* conn = mysql_init(NULL);      // initialize MySQL connection object
@@ -169,17 +168,17 @@ int main() {
     if (mysql_real_connect(conn, DB_HOST.c_str(), DB_USER.c_str(), 
                           DB_PASS.c_str(), DB_NAME.c_str(), 0, NULL, 0) == NULL) {
         cout << "Content-type: text/html\r\n\r\n";  // send HTTP header
-        cout << "<!DOCTYPE html>\n";     // HTML5 document type
-        cout << "<html lang=\"en\">\n";  // open HTML with language
-        cout << "  <head>\n";            // open head section
+        cout << "<!DOCTYPE html>\n";     // HTML5 doctype
+        cout << "<html lang=\"en\">\n";  // HTML with language
+        cout << "  <head>\n";            // head section
         cout << "    <meta charset=\"UTF-8\">\n";  // character encoding
         cout << "    <title>Database Error</title>\n";  // page title
-        cout << "    <link rel=\"stylesheet\" href=\"style.css\">\n";  // stylesheet link
+        cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";  // stylesheet link (now CGI)
         cout << "  </head>\n";           // close head
-        cout << "  <body>\n";            // open body
-        cout << "    <div class=\"container\">\n";  // open container
+        cout << "  <body>\n";            // body section
+        cout << "    <div class=\"container\">\n";  // container div
         cout << "      <h1>Database Error</h1>\n";  // heading
-        cout << "      <p>Failed to connect to database: " << mysql_error(conn) << "</p>\n";  // error details
+        cout << "      <p>Failed to connect to database: " << mysql_error(conn) << "</p>\n";  // error with details
         cout << "      <a href=\"index.cgi\">Go Back</a>\n";  // back link
         cout << "    </div>\n";          // close container
         cout << "  </body>\n";           // close body
@@ -190,19 +189,19 @@ int main() {
     
     // Handle registration action
     if (action == "register") {
-        // Validate input
-        if (email.empty() || password.empty() || confirmPassword.empty()) {
+        // Validate input - only check email and password (no password confirmation)
+        if (email.empty() || password.empty()) {
             cout << "Content-type: text/html\r\n\r\n";  // send HTTP header
             cout << "<!DOCTYPE html>\n";  // HTML5 doctype
             cout << "<html lang=\"en\">\n";  // HTML with language
             cout << "  <head>\n";        // head section
             cout << "    <meta charset=\"UTF-8\">\n";  // character set
             cout << "    <title>Registration Error</title>\n";  // page title
-            cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";  // link to stylesheet (now CGI)
+            cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";  // link stylesheet (now CGI)
             cout << "  </head>\n";       // close head
             cout << "  <body>\n";        // body section
             cout << "    <div class=\"container\">\n";  // container div
-            cout << "      <div class=\"message error\">All fields are required.</div>\n";  // error message
+            cout << "      <div class=\"message error\">Email and password are required.</div>\n";  // error message
             cout << "      <a href=\"index.cgi\">Go Back</a>\n";  // back link
             cout << "    </div>\n";      // close container
             cout << "  </body>\n";       // close body
@@ -211,120 +210,254 @@ int main() {
             return 0;                    // exit program
         }
         
-        // Check if passwords match
-        if (password != confirmPassword) {
-            cout << "Content-type: text/html\r\n\r\n";
-            cout << "<!DOCTYPE html>\n";
-            cout << "<html lang=\"en\">\n";
-            cout << "  <head>\n";
-            cout << "    <meta charset=\"UTF-8\">\n";
-            cout << "    <title>Registration Error</title>\n";
-            cout << "    <link rel=\"stylesheet\" href=\"style.css\">\n";
-            cout << "  </head>\n";
-            cout << "  <body>\n";
-            cout << "    <div class=\"container\">\n";
-            cout << "      <div class=\"message error\">Passwords do not match.</div>\n";
-            cout << "      <a href=\"index.cgi\">Go Back</a>\n";
-            cout << "    </div>\n";
-            cout << "  </body>\n";
-            cout << "</html>\n";
-            mysql_close(conn);
-            return 0;
-        }
-        
         // Escape inputs to prevent SQL injection
         string safeEmail = escapeSQL(conn, email);
         string safePassword = escapeSQL(conn, password);
         
         // Check if email already exists
-        string checkQuery = "SELECT user_id FROM users WHERE email='" + safeEmail + "'";
-        if (mysql_query(conn, checkQuery.c_str())) {  // if query fails
-            cout << "Content-type: text/html\r\n\r\n";
-            cout << "<!DOCTYPE html>\n";
-            cout << "<html lang=\"en\">\n";
-            cout << "  <head>\n";
-            cout << "    <meta charset=\"UTF-8\">\n";
-            cout << "    <title>Database Error</title>\n";
-            cout << "    <link rel=\"stylesheet\" href=\"style.css\">\n";
-            cout << "  </head>\n";
-            cout << "  <body>\n";
-            cout << "    <div class=\"container\">\n";
-            cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
-            cout << "      <a href=\"index.cgi\">Go Back</a>\n";
-            cout << "    </div>\n";
-            cout << "  </body>\n";
-            cout << "</html>\n";
-            mysql_close(conn);
-            return 0;
+        {
+            // Prepared statement to check existence of email
+            MYSQL_STMT* stmt = mysql_stmt_init(conn);
+            if (!stmt) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: Unable to initialize statement.</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_close(conn);
+                return 0;
+            }
+            const char* checkQuery = "SELECT user_id FROM users WHERE email = ? LIMIT 1";
+            if (mysql_stmt_prepare(stmt, checkQuery, strlen(checkQuery))) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            MYSQL_BIND bind_param[1];
+            memset(bind_param, 0, sizeof(bind_param));
+            unsigned long email_len = safeEmail.length();
+            bind_param[0].buffer_type = MYSQL_TYPE_STRING;
+            bind_param[0].buffer = (char*)safeEmail.c_str();
+            bind_param[0].buffer_length = safeEmail.length();
+            bind_param[0].length = &email_len;
+            if (mysql_stmt_bind_param(stmt, bind_param)) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            if (mysql_stmt_execute(stmt)) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            // store result to check number of rows
+            if (mysql_stmt_store_result(stmt)) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            my_ulonglong row_count = mysql_stmt_num_rows(stmt);
+            if (row_count > 0) {  // if email already exists
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Registration Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Email already registered.</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_free_result(stmt);
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            mysql_stmt_free_result(stmt);
+            mysql_stmt_close(stmt);
         }
-        
-        MYSQL_RES* result = mysql_store_result(conn);  // get query results
-        if (mysql_num_rows(result) > 0) {  // if email already exists
-            cout << "Content-type: text/html\r\n\r\n";
-            cout << "<!DOCTYPE html>\n";
-            cout << "<html lang=\"en\">\n";
-            cout << "  <head>\n";
-            cout << "    <meta charset=\"UTF-8\">\n";
-            cout << "    <title>Registration Error</title>\n";
-            cout << "    <link rel=\"stylesheet\" href=\"style.css\">\n";
-            cout << "  </head>\n";
-            cout << "  <body>\n";
-            cout << "    <div class=\"container\">\n";
-            cout << "      <div class=\"message error\">Email already registered.</div>\n";
-            cout << "      <a href=\"index.cgi\">Go Back</a>\n";
-            cout << "    </div>\n";
-            cout << "  </body>\n";
-            cout << "</html>\n";
-            mysql_free_result(result);   // free result memory
-            mysql_close(conn);
-            return 0;
-        }
-        mysql_free_result(result);       // free result memory
         
         // Insert new user into database
-        string insertQuery = "INSERT INTO users (email, password) VALUES ('" + 
-                           safeEmail + "', '" + safePassword + "')";
-        if (mysql_query(conn, insertQuery.c_str())) {  // if insert fails
-            cout << "Content-type: text/html\r\n\r\n";
-            cout << "<!DOCTYPE html>\n";
-            cout << "<html lang=\"en\">\n";
-            cout << "  <head>\n";
-            cout << "    <meta charset=\"UTF-8\">\n";
-            cout << "    <title>Registration Error</title>\n";
-            cout << "    <link rel=\"stylesheet\" href=\"style.css\">\n";
-            cout << "  </head>\n";
-            cout << "  <body>\n";
-            cout << "    <div class=\"container\">\n";
-            cout << "      <div class=\"message error\">Registration failed: " << mysql_error(conn) << "</div>\n";
-            cout << "      <a href=\"index.cgi\">Go Back</a>\n";
-            cout << "    </div>\n";
-            cout << "  </body>\n";
-            cout << "</html>\n";
-            mysql_close(conn);
-            return 0;
+        {
+            // Prepared statement for insert
+            MYSQL_STMT* stmt = mysql_stmt_init(conn);
+            if (!stmt) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: Unable to initialize statement.</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_close(conn);
+                return 0;
+            }
+            const char* insertQuery = "INSERT INTO users (email, password) VALUES (?, ?)";
+            if (mysql_stmt_prepare(stmt, insertQuery, strlen(insertQuery))) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            MYSQL_BIND bind_param[2];
+            memset(bind_param, 0, sizeof(bind_param));
+            unsigned long email_len = safeEmail.length();
+            unsigned long pass_len = safePassword.length();
+            bind_param[0].buffer_type = MYSQL_TYPE_STRING;
+            bind_param[0].buffer = (char*)safeEmail.c_str();
+            bind_param[0].buffer_length = safeEmail.length();
+            bind_param[0].length = &email_len;
+            bind_param[1].buffer_type = MYSQL_TYPE_STRING;
+            bind_param[1].buffer = (char*)safePassword.c_str();
+            bind_param[1].buffer_length = safePassword.length();
+            bind_param[1].length = &pass_len;
+            if (mysql_stmt_bind_param(stmt, bind_param)) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            if (mysql_stmt_execute(stmt)) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Registration Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Registration failed: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            mysql_stmt_close(stmt);
         }
         
         // Get the new user's ID
         int newUserId = mysql_insert_id(conn);
         
-        // Send success page with redirect
-        // IMPORTANT: Set cookie BEFORE Content-type header
-        setSessionCookie(newUserId);     // create session cookie for new user
-        cout << "Content-type: text/html\r\n\r\n";  // send HTTP header after cookie
-        cout << "<!DOCTYPE html>\n";     // HTML5 doctype
-        cout << "<html lang=\"en\">\n";  // HTML with English language
-        cout << "  <head>\n";            // head section
-        cout << "    <meta charset=\"UTF-8\">\n";  // character encoding
-        cout << "    <meta http-equiv=\"refresh\" content=\"2;url=./listings.cgi\">\n";  // auto-redirect after 2 seconds
-        cout << "    <title>Registration Successful</title>\n";  // page title
-        cout << "    <link rel=\"stylesheet\" href=\"./style.css\">\n";  // link to stylesheet
-        cout << "  </head>\n";           // close head
-        cout << "  <body>\n";            // body section
-        cout << "    <div class=\"container\">\n";  // container div
-        cout << "      <div class=\"message success\">Registration successful! Redirecting...</div>\n";  // success message
-        cout << "    </div>\n";          // close container
-        cout << "  </body>\n";           // close body
-        cout << "</html>\n";             // close HTML
+        // Set session cookie and redirect to home page
+        // IMPORTANT: Set cookie BEFORE Location header
+        setSessionCookie(newUserId);
+        cout << "Location: ./index.cgi\r\n\r\n";  // redirect to home page immediately
         
     } else if (action == "login") {
         // Handle login action
@@ -337,7 +470,7 @@ int main() {
             cout << "  <head>\n";
             cout << "    <meta charset=\"UTF-8\">\n";
             cout << "    <title>Login Error</title>\n";
-            cout << "    <link rel=\"stylesheet\" href=\"style.css\">\n";
+            cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
             cout << "  </head>\n";
             cout << "  <body>\n";
             cout << "    <div class=\"container\">\n";
@@ -355,92 +488,209 @@ int main() {
         string safePassword = escapeSQL(conn, password);
         
         // Query database for matching user
-        string loginQuery = "SELECT user_id FROM users WHERE email='" + 
-                          safeEmail + "' AND password='" + safePassword + "'";
-        if (mysql_query(conn, loginQuery.c_str())) {  // if query fails
-            cout << "Content-type: text/html\r\n\r\n";
-            cout << "<!DOCTYPE html>\n";
-            cout << "<html lang=\"en\">\n";
-            cout << "  <head>\n";
-            cout << "    <meta charset=\"UTF-8\">\n";
-            cout << "    <title>Database Error</title>\n";
-            cout << "    <link rel=\"stylesheet\" href=\"style.css\">\n";
-            cout << "  </head>\n";
-            cout << "  <body>\n";
-            cout << "    <div class=\"container\">\n";
-            cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
-            cout << "      <a href=\"index.cgi\">Go Back</a>\n";
-            cout << "    </div>\n";
-            cout << "  </body>\n";
-            cout << "</html>\n";
-            mysql_close(conn);
-            return 0;
+        {
+            // Prepared statement for login
+            MYSQL_STMT* stmt = mysql_stmt_init(conn);
+            if (!stmt) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: Unable to initialize statement.</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_close(conn);
+                return 0;
+            }
+            const char* loginQuery = "SELECT user_id FROM users WHERE email = ? AND password = ? LIMIT 1";
+            if (mysql_stmt_prepare(stmt, loginQuery, strlen(loginQuery))) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            MYSQL_BIND bind_param[2];
+            memset(bind_param, 0, sizeof(bind_param));
+            unsigned long email_len = safeEmail.length();
+            unsigned long pass_len = safePassword.length();
+            bind_param[0].buffer_type = MYSQL_TYPE_STRING;
+            bind_param[0].buffer = (char*)safeEmail.c_str();
+            bind_param[0].buffer_length = safeEmail.length();
+            bind_param[0].length = &email_len;
+            bind_param[1].buffer_type = MYSQL_TYPE_STRING;
+            bind_param[1].buffer = (char*)safePassword.c_str();
+            bind_param[1].buffer_length = safePassword.length();
+            bind_param[1].length = &pass_len;
+            if (mysql_stmt_bind_param(stmt, bind_param)) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            if (mysql_stmt_execute(stmt)) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            if (mysql_stmt_store_result(stmt)) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            my_ulonglong row_count = mysql_stmt_num_rows(stmt);
+            if (row_count == 0) {  // if no matching user found
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Login Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Invalid email or password.</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_free_result(stmt);
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            // Bind result and fetch user_id
+            MYSQL_BIND bind_result[1];
+            memset(bind_result, 0, sizeof(bind_result));
+            int fetched_user_id = 0;
+            unsigned long length_user_id = 0;
+            bind_result[0].buffer_type = MYSQL_TYPE_LONG;
+            bind_result[0].buffer = &fetched_user_id;
+            bind_result[0].buffer_length = sizeof(fetched_user_id);
+            bind_result[0].length = &length_user_id;
+            if (mysql_stmt_bind_result(stmt, bind_result)) {
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Database Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Database error: " << mysql_error(conn) << "</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_free_result(stmt);
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            if (mysql_stmt_fetch(stmt) != 0) {
+                // fetch error - treat as no matching user
+                cout << "Content-type: text/html\r\n\r\n";
+                cout << "<!DOCTYPE html>\n";
+                cout << "<html lang=\"en\">\n";
+                cout << "  <head>\n";
+                cout << "    <meta charset=\"UTF-8\">\n";
+                cout << "    <title>Login Error</title>\n";
+                cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
+                cout << "  </head>\n";
+                cout << "  <body>\n";
+                cout << "    <div class=\"container\">\n";
+                cout << "      <div class=\"message error\">Invalid email or password.</div>\n";
+                cout << "      <a href=\"index.cgi\">Go Back</a>\n";
+                cout << "    </div>\n";
+                cout << "  </body>\n";
+                cout << "</html>\n";
+                mysql_stmt_free_result(stmt);
+                mysql_stmt_close(stmt);
+                mysql_close(conn);
+                return 0;
+            }
+            int userId = fetched_user_id;       // convert user_id to integer
+            mysql_stmt_free_result(stmt);
+            mysql_stmt_close(stmt);
+            
+            // Set session cookie and redirect to home page
+            // IMPORTANT: Set cookie BEFORE Location header
+            setSessionCookie(userId);        // create session cookie for logged in user
+            cout << "Location: ./index.cgi\r\n\r\n";  // redirect to home page immediately
         }
-        
-        MYSQL_RES* result = mysql_store_result(conn);  // get query results
-        if (mysql_num_rows(result) == 0) {  // if no matching user found
-            cout << "Content-type: text/html\r\n\r\n";
-            cout << "<!DOCTYPE html>\n";
-            cout << "<html lang=\"en\">\n";
-            cout << "  <head>\n";
-            cout << "    <meta charset=\"UTF-8\">\n";
-            cout << "    <title>Login Error</title>\n";
-            cout << "    <link rel=\"stylesheet\" href=\"style.css\">\n";
-            cout << "  </head>\n";
-            cout << "  <body>\n";
-            cout << "    <div class=\"container\">\n";
-            cout << "      <div class=\"message error\">Invalid email or password.</div>\n";
-            cout << "      <a href=\"index.cgi\">Go Back</a>\n";
-            cout << "    </div>\n";
-            cout << "  </body>\n";
-            cout << "</html>\n";
-            mysql_free_result(result);
-            mysql_close(conn);
-            return 0;
-        }
-        
-        // Get user ID from result
-        MYSQL_ROW row = mysql_fetch_row(result);
-        int userId = atoi(row[0]);       // convert user_id to integer
-        mysql_free_result(result);       // free result memory
-        
-        // Send success page with redirect
-        // IMPORTANT: Set cookie BEFORE Content-type header
-        setSessionCookie(userId);        // create session cookie for logged in user
-        cout << "Content-type: text/html\r\n\r\n";  // send HTTP header after cookie
-        cout << "<!DOCTYPE html>\n";     // HTML5 doctype
-        cout << "<html lang=\"en\">\n";  // HTML with English language
-        cout << "  <head>\n";            // head section
-        cout << "    <meta charset=\"UTF-8\">\n";  // character encoding
-        cout << "    <meta http-equiv=\"refresh\" content=\"2;url=./listings.cgi\">\n";  // auto-redirect after 2 seconds
-        cout << "    <title>Login Successful</title>\n";  // page title
-                    cout << "    <link rel=\"stylesheet\" href=\"./style.cgi\">\n";  // link to stylesheet (now CGI)
-        cout << "  </head>\n";           // close head
-        cout << "  <body>\n";            // body section
-        cout << "    <div class=\"container\">\n";  // container div
-        cout << "      <div class=\"message success\">Login successful! Redirecting...</div>\n";  // success message
-        cout << "    </div>\n";          // close container
-        cout << "  </body>\n";           // close body
-        cout << "</html>\n";             // close HTML
         
     } else if (action == "logout") {
-        // Handle logout action - expire the cookie
+        // Handle logout action - expire the cookie and redirect
         cout << "Set-Cookie: session=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly\r\n";  // expire cookie by setting old date
-        cout << "Content-type: text/html\r\n\r\n";  // send HTTP header
-        cout << "<!DOCTYPE html>\n";     // HTML5 doctype
-        cout << "<html lang=\"en\">\n";  // HTML with English language
-        cout << "  <head>\n";            // head section
-        cout << "    <meta charset=\"UTF-8\">\n";  // character encoding
-        cout << "    <meta http-equiv=\"refresh\" content=\"2;url=./index.cgi\">\n";  // redirect to home after 2 seconds
-        cout << "    <title>Logged Out</title>\n";  // page title
-        cout << "    <link rel=\"stylesheet\" href=\"./style.css\">\n";  // link stylesheet
-        cout << "  </head>\n";           // close head
-        cout << "  <body>\n";            // body section
-        cout << "    <div class=\"container\">\n";  // container div
-        cout << "      <div class=\"message success\">Logged out successfully!</div>\n";  // success message
-        cout << "    </div>\n";          // close container
-        cout << "  </body>\n";           // close body
-        cout << "</html>\n";             // close HTML
+        cout << "Location: ./index.cgi\r\n\r\n";  // redirect to home page immediately
         
     } else {
         // Unknown action - user submitted invalid action
@@ -450,7 +700,7 @@ int main() {
         cout << "  <head>\n";            // head section
         cout << "    <meta charset=\"UTF-8\">\n";  // character encoding
         cout << "    <title>Error</title>\n";  // page title
-        cout << "    <link rel=\"stylesheet\" href=\"./style.css\">\n";  // link stylesheet
+        cout << "    <link rel=\"stylesheet\" href=\"./style.cgi\">\n";  // link stylesheet (now CGI)
         cout << "  </head>\n";           // close head
         cout << "  <body>\n";            // body section
         cout << "    <div class=\"container\">\n";  // container div
