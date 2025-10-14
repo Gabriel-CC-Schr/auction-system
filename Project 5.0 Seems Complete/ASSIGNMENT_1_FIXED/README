@@ -2,3 +2,4 @@ Uses Sessions to manage logins from the server side, not just with client cookie
 MySql database now has 'sessions' table as well (schema updated)
 Has the 5 minute log-out visible in top left corner (with log in status)
 Doesn't need password hash stuff (Professor said don't worry about it)
+Index page now contains 'future links' to next pages (Professor suggested it).
