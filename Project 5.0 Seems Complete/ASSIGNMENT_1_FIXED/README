@@ -1,0 +1,3 @@
+Uses Sessions to manage logins from the server side, not just with client cookies
+Has the 5 minute log-out visible in top left corner (with log in status)
+Doesn't need password hash stuff (Professor said don't worry about it)
