@@ -1,5 +1,12 @@
 # Changes
 
+## Deletes all main files to use Pauls Miscellaneierporter
+---
+### **Gabriel**
+Deleted all main files to use Pauls Miscellaneierporter
+
+---
+
 
 
 
