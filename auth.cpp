@@ -1,12 +1,11 @@
+
+
 #include <iostream>     
 #include <string>       
 #include <ctime>        
 #include <sstream>     
 #include <mysql/mysql.h>  
 #include <cstdlib>     
-#include <cstring>  
-
-#include "auth.h"
 
 using namespace std;
 
@@ -16,13 +15,14 @@ const string DB_USER = "allindragons";
 const string DB_PASS = "snogardnilla_002";                 
 const string DB_NAME = "cs370_section2_allindragons";        
 
-// URL decode function
+ 
 string urlDecode(const string& str) {
     string result = "";   
     for (size_t i = 0; i < str.length(); i++) {   
         if (str[i] == '+') {         
             result += ' ';
         } else if (str[i] == '%' && i + 2 < str.length()) {  
+            
             int hexValue;    
             sscanf(str.substr(i + 1, 2).c_str(), "%x", &hexValue);   
             result += static_cast<char>(hexValue);  
@@ -32,9 +32,9 @@ string urlDecode(const string& str) {
         }
     }
     return result;     
-} 
 
-// Get POST value function
+}
+
 string getPostValue(const string& postData, const string& fieldName) {
     size_t pos = postData.find(fieldName + "=");  
     if (pos == string::npos) {   
@@ -51,7 +51,7 @@ string getPostValue(const string& postData, const string& fieldName) {
     return urlDecode(value); 
 }
 
-// Escape SQL function
+ 
 string escapeSQL(MYSQL* conn, const string& str) {
     char* escaped = new char[str.length() * 2 + 1];  
     mysql_real_escape_string(conn, escaped, str.c_str(), str.length());   
@@ -60,7 +60,7 @@ string escapeSQL(MYSQL* conn, const string& str) {
     return result;   
 }
 
-// Get cookie value function
+ 
 string getCookie(const string& cookieName) {
     const char* cookies = getenv("HTTP_COOKIE"); 
     if (cookies == NULL) { 
@@ -79,7 +79,7 @@ string getCookie(const string& cookieName) {
     return cookieStr.substr(pos, endPos - pos);   
 }
 
-// Set session cookie function
+ 
 void setSessionCookie(int userId) {
     time_t now = time(0);               
     time_t expireTime = now + 300;       
@@ -88,7 +88,7 @@ void setSessionCookie(int userId) {
     cout << "Set-Cookie: session=" << cookieValue << "; HttpOnly\r\n";
 }
 
-// Check session function
+ 
 int checkSession() {
     string sessionCookie = getCookie("session");  
     if (sessionCookie.empty()) {   
@@ -102,7 +102,7 @@ int checkSession() {
     }
     
     int userId = atoi(sessionCookie.substr(0, colonPos).c_str());   
-    time_t expireTime = atol(sessionCookie.substr(colonPos + 1).c_str());
+    time_t expireTime = atol(sessionCookie.substr(colonPos + 1).c_str());  / 
     time_t now = time(0);   
     
     if (now > expireTime) {  
@@ -110,39 +110,6 @@ int checkSession() {
     }
     
     return userId;  
-}
-
-// Custom SQL escape function
-static char *spc_escape_sql(const char *input, char quote, int wildcards) {
-  char       *out, *ptr;
-  const char *c;
-   
-  if (quote != '\'' && quote != '\"') return 0;
-  if (!(out = ptr = (char *)malloc(strlen(input) * 2 + 2 + 1))) return 0;
-  *ptr++ = quote;
-  for (c = input;  *c;  c++) {
-    switch (*c) {
-      case '\'': case '\"':
-        if (quote == *c) *ptr++ = *c;
-        *ptr++ = *c;
-        break;
-      case '%': case '_': case '[': case ']':
-        if (wildcards) *ptr++ = '\\';
-        *ptr++ = *c;
-        break;
-      case '\\': *ptr++ = '\\'; *ptr++ = '\\'; break;
-      case '\b': *ptr++ = '\\'; *ptr++ = 'b';  break;
-      case '\n': *ptr++ = '\\'; *ptr++ = 'n';  break;
-      case '\r': *ptr++ = '\\'; *ptr++ = 'r';  break;
-      case '\t': *ptr++ = '\\'; *ptr++ = 't';  break;
-      default:
-        *ptr++ = *c;
-        break;
-    }
-  }
-  *ptr++ = quote;
-  *ptr = 0;
-  return out;
 }
 
 int main() {
@@ -263,18 +230,12 @@ int main() {
             return 0;
         }
         
-        // Use spc_escape_sql to build quoted, escaped values for SQL
-        char *qEmail = spc_escape_sql(email.c_str(), '\'', 0);
-        if (!qEmail) {
-            // fallback error page
-            cout << "Content-type: text/html\r\n\r\n";
-            cout << "<!DOCTYPE html>\n<html><body><p>Server error.</p></body></html>\n";
-            mysql_close(conn);
-            return 1;
-        }
 
-        string checkQuery = string("SELECT user_id FROM users WHERE email=") + qEmail;
-        free(qEmail); // free after building query
+        string safeEmail = escapeSQL(conn, email);
+        string safePassword = escapeSQL(conn, password);
+    
+       
+        string checkQuery = "SELECT user_id FROM users WHERE email='" + safeEmail + "'";
 
         // Execute the query
         if (mysql_query(conn, checkQuery.c_str())) { 
@@ -320,21 +281,9 @@ int main() {
         }
         mysql_free_result(result);      
         
-        // prepare email and password for insert (quoted & escaped)
-        char *qEmail2 = spc_escape_sql(email.c_str(), '\'', 0);
-        char *qPass2  = spc_escape_sql(password.c_str(), '\'', 0);
-        if (!qEmail2 || !qPass2) {
-            // cleanup and error
-            free(qEmail2); free(qPass2);
-            cout << "Content-type: text/html\r\n\r\n";
-            cout << "<!DOCTYPE html>\n<html><body><p>Server error.</p></body></html>\n";
-            mysql_close(conn);
-            return 1;
-        }
-
-        string insertQuery = string("INSERT INTO users (email, password) VALUES (") + qEmail2 + ", " + qPass2 + ")";
-        free(qEmail2); free(qPass2);
-
+         
+        string insertQuery = "INSERT INTO users (email, password) VALUES ('" + 
+                           safeEmail + "', '" + safePassword + "')";
         if (mysql_query(conn, insertQuery.c_str())) {   
             cout << "Content-type: text/html\r\n\r\n";
             cout << "<!DOCTYPE html>\n";
@@ -400,20 +349,13 @@ int main() {
             return 0;
         }
         
-        // Build safe, quoted strings for email and password
-        char *qEmailL = spc_escape_sql(email.c_str(), '\'', 0);
-        char *qPassL  = spc_escape_sql(password.c_str(), '\'', 0);
-        if (!qEmailL || !qPassL) {
-            free(qEmailL); free(qPassL);
-            cout << "Content-type: text/html\r\n\r\n";
-            cout << "<!DOCTYPE html>\n<html><body><p>Server error.</p></body></html>\n";
-            mysql_close(conn);
-            return 1;
-        }
-
-        string loginQuery = string("SELECT user_id FROM users WHERE email=") + qEmailL + " AND password=" + qPassL;
-        free(qEmailL); free(qPassL);
-
+        
+        string safeEmail = escapeSQL(conn, email);
+        string safePassword = escapeSQL(conn, password);
+        
+        
+        string loginQuery = "SELECT user_id FROM users WHERE email='" + 
+                          safeEmail + "' AND password='" + safePassword + "'";
         if (mysql_query(conn, loginQuery.c_str())) {   
             cout << "Content-type: text/html\r\n\r\n";
             cout << "<!DOCTYPE html>\n";
@@ -455,6 +397,7 @@ int main() {
             mysql_close(conn);
             return 0;
         }
+        
         
         MYSQL_ROW row = mysql_fetch_row(result);
         int userId = atoi(row[0]); 
