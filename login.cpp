@@ -294,8 +294,7 @@ int main() {
         string email = getValue(postData, "email");
         string password = getValue(postData, "password");
         
-        // sql injection prevention:
-        // escape email and password before using in SQL 
+        // escape email and password before using in SQL injection
         string escapedEmail = escapeSQL(conn, email);
         string escapedPassword = escapeSQL(conn, password);
         
