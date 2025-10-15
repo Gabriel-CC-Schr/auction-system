@@ -6,6 +6,8 @@
 #include <cstdlib>     
 #include <cstring>  
 
+#include "auth.h"
+
 using namespace std;
 
  
@@ -14,7 +16,7 @@ const string DB_USER = "allindragons";
 const string DB_PASS = "snogardnilla_002";                 
 const string DB_NAME = "cs370_section2_allindragons";        
 
- 
+// URL decode function
 string urlDecode(const string& str) {
     string result = "";   
     for (size_t i = 0; i < str.length(); i++) {   
@@ -32,7 +34,7 @@ string urlDecode(const string& str) {
     return result;     
 } 
 
- 
+// Get POST value function
 string getPostValue(const string& postData, const string& fieldName) {
     size_t pos = postData.find(fieldName + "=");  
     if (pos == string::npos) {   
@@ -49,7 +51,7 @@ string getPostValue(const string& postData, const string& fieldName) {
     return urlDecode(value); 
 }
 
- 
+// Escape SQL function
 string escapeSQL(MYSQL* conn, const string& str) {
     char* escaped = new char[str.length() * 2 + 1];  
     mysql_real_escape_string(conn, escaped, str.c_str(), str.length());   
@@ -58,7 +60,7 @@ string escapeSQL(MYSQL* conn, const string& str) {
     return result;   
 }
 
- 
+// Get cookie value function
 string getCookie(const string& cookieName) {
     const char* cookies = getenv("HTTP_COOKIE"); 
     if (cookies == NULL) { 
@@ -77,7 +79,7 @@ string getCookie(const string& cookieName) {
     return cookieStr.substr(pos, endPos - pos);   
 }
 
- 
+// Set session cookie function
 void setSessionCookie(int userId) {
     time_t now = time(0);               
     time_t expireTime = now + 300;       
@@ -86,7 +88,7 @@ void setSessionCookie(int userId) {
     cout << "Set-Cookie: session=" << cookieValue << "; HttpOnly\r\n";
 }
 
- 
+// Check session function
 int checkSession() {
     string sessionCookie = getCookie("session");  
     if (sessionCookie.empty()) {   
@@ -110,6 +112,7 @@ int checkSession() {
     return userId;  
 }
 
+// Custom SQL escape function
 static char *spc_escape_sql(const char *input, char quote, int wildcards) {
   char       *out, *ptr;
   const char *c;
