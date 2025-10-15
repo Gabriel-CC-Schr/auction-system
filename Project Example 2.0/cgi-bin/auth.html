@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Auction — Login / Register</title>
+  <style>
+    body{font-family:sans-serif;max-width:700px;margin:40px auto;padding:0 12px}
+    form{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}
+    input,button{padding:8px;margin:6px 0}
+    .ok{color:#070}.err{color:#b00}
+  </style>
+</head>
+<body>
+  <h1>Login / Register</h1>
+
+  <form id="loginForm">
+    <h3>Log in</h3>
+    <input name="email" type="email" placeholder="email" required />
+    <input name="password" type="password" placeholder="password" required />
+    <button>Log in</button>
+    <div class="msg" id="loginMsg"></div>
+  </form>
+
+  <form id="regForm">
+    <h3>Register</h3>
+    <input name="email" type="email" placeholder="email" required />
+    <input name="password" type="password" placeholder="password" required />
+    <button>Create account</button>
+    <div class="msg" id="regMsg"></div>
+  </form>
+
+  <p><a href="/auction/auctions.html">Open Auctions</a> · <a href="/auction/transactions.html">Your Transactions</a></p>
+
+<script>
+async function postForm(url, data){
+  const body = new URLSearchParams(data).toString();
+  const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+  return res.json();
+}
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const f=e.target, msg=document.getElementById('loginMsg');
+  msg.textContent=''; const r=await postForm('/cgi-bin/auth_api.cgi', {action:'login', email:f.email.value, password:f.password.value});
+  if(r.ok){ msg.textContent='Logged in! Redirecting…'; msg.className='msg ok'; location.href='/auction/auctions.html'; }
+  else{ msg.textContent='Login failed: '+(r.error||''); msg.className='msg err'; }
+});
+document.getElementById('regForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const f=e.target, msg=document.getElementById('regMsg');
+  msg.textContent=''; const r=await postForm('/cgi-bin/auth_api.cgi', {action:'register', email:f.email.value, password:f.password.value});
+  if(r.ok){ msg.textContent='Registered! Redirecting…'; msg.className='msg ok'; location.href='/auction/auctions.html'; }
+  else{ msg.textContent='Registration failed: '+(r.error||''); msg.className='msg err'; }
+});
+</script>
+</body>
+</html>

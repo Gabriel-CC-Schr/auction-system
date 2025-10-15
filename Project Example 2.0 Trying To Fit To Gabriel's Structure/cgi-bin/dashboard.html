@@ -1,0 +1,70 @@
+<!doctype html>
+<html><head>
+  <meta charset="utf-8"/>
+  <title>Open Auctions</title>
+  <style>
+    body{font-family:sans-serif;max-width:1100px;margin:32px auto;padding:0 12px}
+    .card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:12px 0}
+    .grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+    input,select,button,textarea{padding:8px;margin:6px 0}
+    form{border:1px solid #ddd;border-radius:12px;padding:12px;margin:18px 0}
+    .ok{color:#070}.err{color:#b00}
+  </style>
+</head><body>
+  <h1>Open Auctions</h1>
+  <p><a href="/auction/index.html">Home</a> · <a href="/auction/profile.html">Your Transactions</a></p>
+  <div id="list"></div>
+
+  <h2>Sell an Item</h2>
+  <form id="sellForm">
+    <label>Title</label><input name="title" maxlength="150" required>
+    <label>Description</label><textarea name="description" rows="3" required></textarea>
+    <label>Starting Price (USD)</label><input name="starting_price" type="number" min="0" step="0.01" required>
+    <label>Start Date &amp; Time (YYYY-MM-DD HH:MM:SS)</label><input name="start_time" required>
+    <button>Create Auction</button>
+    <div id="sellMsg"></div>
+  </form>
+
+<script>
+function el(tag, props={}, ...kids){ const e=document.createElement(tag); Object.assign(e, props); for(const k of kids) e.append(k); return e; }
+
+async function loadAuctions(){
+  const r=await fetch('/cgi-bin/server.cgi/auctions'); const j=await r.json();
+  const list=document.getElementById('list'); list.innerHTML=''; if(!j.ok){ list.textContent='DB error'; return; }
+  j.auctions.forEach(a=>{
+    let soonHTML=''; try{ const end=new Date(a.ends.replace(' ','T')); const mins=Math.max(0,Math.round((end-Date.now())/60000)); if(mins<=60) soonHTML=` <em>(~${mins} min left)</em>`; }catch{}
+    const card=el('div',{className:'card',id:`bid-${a.auction_id}`},
+      el('div',{className:'grid'},
+        el('div',{}, el('h3',{}, a.title), el('p',{}, a.description), el('small',{}, 'Ends: '+a.ends+soonHTML)),
+        el('div',{}, el('strong',{}, 'Starting'), el('div',{}, '$'+a.starting)),
+        el('div',{}, el('strong',{}, 'Current'),  el('div',{}, '$'+a.current))
+      )
+    );
+    const f=el('form',{});
+    f.innerHTML=`<input type="hidden" name="auction_id" value="${a.auction_id}">
+                 <label>Your Maximum Bid (USD)</label>
+                 <input name="amount" type="number" min="0" step="0.01" required>
+                 <button>Place Bid</button>
+                 <span class="msg"></span>`;
+    f.addEventListener('submit', async (e)=>{
+      e.preventDefault(); const data=new URLSearchParams({action:'bid', auction_id:f.auction_id.value, amount:f.amount.value}).toString();
+      const res=await fetch('/cgi-bin/server.cgi/auctions',{method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:data, credentials:'include'});
+      const m=f.querySelector('.msg'); if(res.status===401){ m.innerHTML='Log in: <a href="/auction/login.html">Login</a>'; m.className='msg err'; return; }
+      if(res.status===403){ m.textContent='You are the seller — you can’t bid on your own item.'; m.className='msg err'; return; }
+      const jr=await res.json(); if(jr.ok){ m.textContent='Bid placed!'; m.className='msg ok'; loadAuctions(); } else { m.textContent='Error: '+(jr.error||'unknown'); m.className='msg err'; }
+    });
+    card.append(f); list.append(card);
+  });
+}
+
+document.getElementById('sellForm').addEventListener('submit', async (e)=>{
+  e.preventDefault(); const f=e.target, msg=document.getElementById('sellMsg'); msg.textContent='';
+  const data=new URLSearchParams({action:'sell', title:f.title.value, description:f.description.value, starting_price:f.starting_price.value, start_time:f.start_time.value}).toString();
+  const res=await fetch('/cgi-bin/server.cgi/auctions',{method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:data, credentials:'include'});
+  if(res.status===401){ msg.innerHTML='Log in: <a href="/auction/login.html">Login</a>'; msg.className='err'; return; }
+  const j=await res.json(); if(j.ok){ msg.textContent='Auction created!'; msg.className='ok'; f.reset(); loadAuctions(); } else { msg.textContent='Error: '+(j.error||'unknown'); msg.className='err'; }
+});
+
+loadAuctions();
+</script>
+</body></html>

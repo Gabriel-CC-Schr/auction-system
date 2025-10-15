@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head>
+  <meta charset="utf-8"/>
+  <title>Register</title>
+  <style>body{font-family:sans-serif;max-width:600px;margin:40px auto;padding:0 12px} .ok{color:#070}.err{color:#b00}</style>
+</head><body>
+  <h1>Create account</h1>
+  <form id="f">
+    <input name="email" type="email" placeholder="email" required/><br>
+    <input name="password" type="password" placeholder="password" required/><br>
+    <button>Register</button>
+    <div id="m"></div>
+  </form>
+  <p><a href="/auction/login.html">Back to login</a></p>
+<script>
+const f=document.getElementById('f'); const m=document.getElementById('m');
+f.addEventListener('submit', async (e)=>{
+  e.preventDefault(); m.textContent='';
+  const body=new URLSearchParams({action:'register', email:f.email.value, password:f.password.value}).toString();
+  const r=await fetch('/cgi-bin/server.cgi/auth',{method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+  const j=await r.json(); if(j.ok){ m.textContent='Registered!'; m.className='ok'; location.href='/auction/dashboard.html'; }
+  else { m.textContent='Registration failed'; m.className='err'; }
+});
+</script>
+</body></html>

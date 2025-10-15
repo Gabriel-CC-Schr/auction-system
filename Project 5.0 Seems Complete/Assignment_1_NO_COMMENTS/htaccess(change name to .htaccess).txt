@@ -1,0 +1,14 @@
+Options +ExecCGI
+AddHandler cgi-script .cgi
+
+Header set X-Content-Type-Options nosniff
+Header set X-Frame-Options SAMEORIGIN
+Header set X-XSS-Protection "1; mode=block"
+
+DirectoryIndex index.cgi
+
+<FilesMatch "\.cpp$">
+  RemoveHandler .cpp
+  AddType text/plain .cpp
+  Require all granted
+</FilesMatch>

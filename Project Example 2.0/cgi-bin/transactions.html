@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Your Transactions</title>
+  <style>
+    body{font-family:sans-serif;max-width:1100px;margin:32px auto;padding:0 12px}
+    h2{margin-top:28px}
+    table{border-collapse:collapse;width:100%} th,td{border:1px solid #ddd;padding:8px}
+    .warn{color:#b00}
+  </style>
+</head>
+<body>
+  <h1>Your Transactions</h1>
+  <p><a href="/auction/auctions.html">Open Auctions</a></p>
+  <div id="out" class="warn"></div>
+
+  <h2>1. Selling — Active</h2><div id="selling_active"></div>
+  <h2>1. Selling — Sold</h2><div id="selling_sold"></div>
+  <h2>2. Purchases</h2><div id="purchases"></div>
+  <h2>3. Current Bids</h2><div id="current_bids"></div>
+  <h2>4. Didn’t Win</h2><div id="didnt_win"></div>
+
+<script>
+function tableFrom(arr, headers){
+  if(!arr || !arr.length) return "<p><em>None.</em></p>";
+  let thead = "<tr>"+headers.map(h=>`<th>${h}</th>`).join("")+"</tr>";
+  let tbody = arr.map(o=>"<tr>"+headers.map(h=>`<td>${o[h]??""}</td>`).join("")+"</tr>").join("");
+  return `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+(async ()=>{
+  const res = await fetch('/cgi-bin/transactions_api.cgi', {credentials:'include'});
+  if(res.status === 401){
+    document.getElementById('out').innerHTML =
+      'Session timed out after 5 minutes of inactivity. <a href="/auction/auth.html?timeout=1">Log in again</a>.';
+    return;
+  }
+  const r = await res.json();
+  if(!r.ok){ document.getElementById('out').textContent = 'Not logged in or DB error.'; return; }
+  document.getElementById('selling_active').innerHTML = tableFrom(r.selling_active, ["title","starting_price","end_time","current_price"]);
+  document.getElementById('selling_sold').innerHTML   = tableFrom(r.selling_sold,   ["title","ended","winning_bid"]);
+  document.getElementById('purchases').innerHTML      = tableFrom(r.purchases,      ["title","ended","your_bid"]);
+  const cb = (r.current_bids||[]).map(x=>({...x, Action: `<a href="/auction/auctions.html#bid-${x.auction_id}">Increase Max Bid</a>`}));
+  document.getElementById('current_bids').innerHTML   = tableFrom(cb, ["title","ends","your_max","current_high","status","Action"]);
+  document.getElementById('didnt_win').innerHTML      = tableFrom(r.didt_win||r["didnt_win"], ["title","ended","winning_bid"]);
+})();
+</script>
+</body>
+</html>
