@@ -10,7 +10,7 @@ using namespace std;
   - Lets people register (creates a new user row)
   - Lets people log in (checks email + password)
   - Creates a server-side "session" row so we know who is logged in
-  - Puts a "session" cookie in the browser with a random ID (UUID), not the user’s info
+  - Puts a "session" cookie in the browser with a random ID (UUID), not the userâ€™s info
   - Lets people log out (deletes the session and clears the cookie)
   - Shows a tiny HTML page if someone opens login.cgi directly
 
@@ -31,7 +31,7 @@ const string DB_NAME = "cs370_section2_allindragons";
 const int SESSION_NONE = 0;
 const int SESSION_LOGGED_IN = 1;
 const int SESSION_EXPIRED = 2;
-// This is 5 minutes in seconds. If you’re inactive longer than this, you’re "timed out".
+// This is 5 minutes in seconds. If youâ€™re inactive longer than this, youâ€™re "timed out".
 const int SESSION_TIMEOUT = 300;
 
 /*
@@ -119,7 +119,7 @@ string urlDecode(const string& str) {
 /*
   getValue(data, key):
   Pulls out a single field from a URL-encoded string like "a=1&b=2".
-  It finds "key=" and returns the value. If the key isn’t there, returns "".
+  It finds "key=" and returns the value. If the key isnâ€™t there, returns "".
   We also call urlDecode so spaces and symbols are correct.
 */
 string getValue(const string& data, const string& key) {
@@ -175,8 +175,8 @@ string createSession(MYSQL* conn, int userId) {
   - If cookie exists, we look it up in the DB:
       * If not found, treat as none (maybe it was deleted).
       * If found, check last_activity time:
-          - If more than 5 minutes ago, it’s EXPIRED.
-          - Otherwise, it’s LOGGED_IN and we set outUserId to the user’s ID.
+          - If more than 5 minutes ago, itâ€™s EXPIRED.
+          - Otherwise, itâ€™s LOGGED_IN and we set outUserId to the userâ€™s ID.
 */
 int getSessionState(MYSQL* conn, int& outUserId) {
     string sessionId = getCookie("session");
@@ -203,7 +203,7 @@ int getSessionState(MYSQL* conn, int& outUserId) {
     MYSQL_ROW row = mysql_fetch_row(result);
     
     if (!row) {
-        // Cookie said there was a session, but database doesn’t have it ? treat as none
+        // Cookie said there was a session, but database doesnâ€™t have it ? treat as none
         mysql_free_result(result);
         outUserId = 0;
         return SESSION_NONE;
@@ -264,7 +264,7 @@ int main() {
     const char* requestMethod = getenv("REQUEST_METHOD");
     const char* queryString = getenv("QUERY_STRING");
     
-    // 1) Connect to the database. If this fails, we can’t do anything else.
+    // 1) Connect to the database. If this fails, we canâ€™t do anything else.
     MYSQL* conn = mysql_init(NULL);
     if (!mysql_real_connect(conn, DB_HOST.c_str(), DB_USER.c_str(), 
                            DB_PASS.c_str(), DB_NAME.c_str(), 0, NULL, 0)) {
@@ -330,8 +330,8 @@ int main() {
             /*
               Registration:
               We insert a new row into "users" using the email and password they typed.
-              (Note: for a real app, we’d hash the password. For this class project,
-               we’re keeping it simple and focusing on the overall system.)
+              (Note: for a real app, weâ€™d hash the password. For this class project,
+               weâ€™re keeping it simple and focusing on the overall system.)
             */
             string query = "INSERT INTO users (email, password) VALUES ('" + 
                           escapedEmail + "', '" + escapedPassword + "')";
@@ -369,7 +369,7 @@ int main() {
                         cout << "Set-Cookie: session=" << sessionId << "; HttpOnly\r\n";
                         cout << "Location: ./index.cgi\r\n\r\n";
                     } else {
-                        // Couldn’t make a session for some reason.
+                        // Couldnâ€™t make a session for some reason.
                         cout << "Location: ./index.cgi?error=session\r\n\r\n";
                     }
                 } else {
@@ -380,10 +380,10 @@ int main() {
                 mysql_free_result(result);
             }
         } else {
-            // If action is something weird, just send them home.
+            // Some Error send to home
             cout << "Location: ./index.cgi\r\n\r\n";
         }
-        
+        // conn = conntions
         mysql_close(conn);
         return 0;
     }
@@ -407,7 +407,7 @@ int main() {
     cout << "      <h1>Authentication Handler</h1>\n";
     cout << "      <p>This page handles login and registration.</p>\n";
     
-    // If the person somehow is already logged in, we show a quick logout form.
+    // If the person is already logged in, we show a quick logout form.
     if (sessionState == SESSION_LOGGED_IN) {
         cout << "      <p>You are currently logged in.</p>\n";
         cout << "      <form action=\"login.cgi\" method=\"get\">\n";
@@ -422,8 +422,8 @@ int main() {
     cout << "    </div>\n";
     cout << "  </body>\n";
     cout << "</html>\n";
-    
-    // Close the DB connection at the very end to be nice to the server.
+
+    // conn = connection
     mysql_close(conn);
     return 0;
 }
