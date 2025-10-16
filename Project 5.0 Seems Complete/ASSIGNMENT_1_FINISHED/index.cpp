@@ -10,26 +10,20 @@
 #include <mysql/mysql.h>
 using namespace std;
 
-// DATABASE CREDENTIALS:
+// The DB CREDENTIALS
 const string DB_HOST = "localhost";
 const string DB_USER = "allindragons";
 const string DB_PASS = "snogardnilla_002";
 const string DB_NAME = "cs370_section2_allindragons";
 
-// LOGIN STATES:
-// we are chosing easy numbers to represent the 3 login states: they are as follows
-// 0 = nobody logged in; 1 = active session; 2 = session exists but timed out
+// CREATING SESSION STATES AND TIMEOUT DURATION
 const int SESSION_NONE = 0;
 const int SESSION_LOGGED_IN = 1;
 const int SESSION_EXPIRED = 2;
 
-// INACTIVITY TIMEOUT 
-// user logged out automatically after 5 minutes (=300 seconds)
-const int SESSION_TIMEOUT = 300;
+const int SESSION_TIMEOUT = 300;// 5 minutes for inactivity
 
-// PROTECTING AGAINST HTML INJECTION ATTACKS:
-// here is an html escape function to handle people trying to inject special characters into the 
-// input fields to break into the site. The characters you see are turned into their safe versions
+// here is an html escape function to handle people trying to inject special characters
 string htmlEscape(const string& s) {
     string r;
     r.reserve(s.size() * 2);
@@ -44,10 +38,7 @@ string htmlEscape(const string& s) {
     return r;
 }
 
-// GET NAME OF COOKIE:
-// this function looks for "name=" and returns value for that cookie, or "" if not found
-// (browser sends cookies in environment variable called HTTP_COOKIE which is 
-// a long string like: "session=abc123; theme=light" )
+// this function reads a cookie from the browser and returns its value
 string getCookie(const string& name) {
     const char* cookies = getenv("HTTP_COOKIE");
     if (!cookies) return "";
@@ -67,9 +58,7 @@ string getCookie(const string& name) {
     return cookieStr.substr(pos, endPos - pos);
 }
 
-// PROTECTING AGAINST HTML INJECTION ATTACKS:
-// here is an html escape function to handle people trying to inject special characters into the 
-// input fields to break into the site. The characters you see are turned into their safe versions
+// ESCAPING STRINGS FOR SAFE USE IN SQL QUERIES:
 string escapeSQL(MYSQL* conn, const string& input) {
     char* escaped = new char[input.length() * 2 + 1];
     mysql_real_escape_string(conn, escaped, input.c_str(), input.length());
@@ -78,8 +67,7 @@ string escapeSQL(MYSQL* conn, const string& input) {
     return result;
 }
 
-// CONVERTING WEIRD URL GOBBLEDEYGOOK BACK INTO CHARACTERS:
-// this function just decodes url %xx stuff back into characters
+// this function decodes URL-encoded strings (like form data)
 string urlDecode(const string& str) {
     string result;
     for (size_t i = 0; i < str.length(); i++) {
@@ -97,10 +85,7 @@ string urlDecode(const string& str) {
     return result;
 }
 
-// GETTING VALUE PAIRS OUT OF URL GOBBLEDEYGOOK TO SEND TO urlDECODE
-// this extracts key=value pairs separated by & to send to urlDecode (above)
-// to make sure spaces and symbols are correct. 
-// Also, if there is no key it returns an empty string ""
+// this function pulls a value out of a URL query string or POST body
 string getValue(const string& data, const string& key) {
     size_t pos = data.find(key + "=");
     if (pos == string::npos) return "";
@@ -114,12 +99,8 @@ string getValue(const string& data, const string& key) {
     return urlDecode(data.substr(pos, endPos - pos));
 }
 
-// GETTING SESSION STATE FROM THE SERVER:
-// here is where we handle sessions for users logged in or not
-// we check for session cookie in browser and if isn't one noone logged in
-// if there is cookie we lookup seession ID in database: if not found assume not logged in
-// if more than 5 minutes session EXPIRED
-// otherwise user is LOGGED_IN and we set outUderId to that user's ID.
+// HANDLING SESSIONS ON THE SERVER:
+// this function checks the session cookie and returns the session state
 int getSessionState(MYSQL* conn, int& outUserId) {
     string sessionId = getCookie("session");
     
@@ -144,7 +125,7 @@ int getSessionState(MYSQL* conn, int& outUserId) {
     
     MYSQL_ROW row = mysql_fetch_row(result);
     
-    // cookie says was a session, but DB doesn’t have
+    // session cookie exists but no matching session in database
     if (!row) {
         mysql_free_result(result);
         outUserId = 0;
@@ -155,52 +136,48 @@ int getSessionState(MYSQL* conn, int& outUserId) {
     long lastActivity = atol(row[1]);
     mysql_free_result(result);
     
-    // session exists, but user idle too long over 5 mins
+    // check for session timeout due to inactivity
     long currentTime = time(NULL);
     if (currentTime - lastActivity > SESSION_TIMEOUT) {
         outUserId = 0;
         return SESSION_EXPIRED;
     }
     
-    // session good, user active
+    // session is valid and active
     outUserId = userId;
     return SESSION_LOGGED_IN;
 }
 
-// CLEARING THE SESSION COOKIE
-// standard highly used way to have the browser forget the session cookie (so says Google)
-// by setting it to empty and giving it a 1970 expiration date
+// this function clears the session cookie in the browser
 void clearSessionCookie() {
     cout << "Set-Cookie: session=; HttpOnly; expires=Thu, 01 Jan 1970 00:00:00 GMT\r\n";
 }
 
 int main() {
 
-    // grab query strings from stuff in URL after the "?"
-    // need this to show error or success messages
+    // read the QUERY_STRING environment variable for any URL parameters
     const char* queryString = getenv("QUERY_STRING");
     string qs = queryString ? queryString : "";
     
-    // 1. connect to database: if fails can’t check sessions or do much else
+    // connect to the database
     MYSQL* conn = mysql_init(NULL);
+    // if connection fails, show basic error page
     if (!mysql_real_connect(conn, DB_HOST.c_str(), DB_USER.c_str(), 
                            DB_PASS.c_str(), DB_NAME.c_str(), 0, NULL, 0)) {
-        // We’ll print a basic error page so the user sees something helpful.
         cout << "Content-type: text/html\r\n\r\n";
         cout << "<html><body><h1>Database Connection Error</h1></body></html>\n";
         return 1;
     }
     
-    // 2. figure out the session state (logged in, expired, or none)
     int userId = 0;
     int sessionState = getSessionState(conn, userId);
     
-    // if session expired, clear cookie so browser doesn’t think it’s still valid
+    // If user is logged in renew session activity to prevent timeout.
     if (sessionState == SESSION_EXPIRED) {
         clearSessionCookie();
     }
     
-    // 3. prepare little status message shown at top-left of page
+    // if user is logged in renew session activity to prevent timeout
     string statusMessage;
     if (sessionState == SESSION_LOGGED_IN) {
         statusMessage = "you are currently logged in";
@@ -210,7 +187,7 @@ int main() {
         statusMessage = "not logged in yet";
     }
     
-    // 4. start sending our HTML page back to browser
+    // show the main page
     cout << "Content-type: text/html\r\n\r\n";
     cout << "<!DOCTYPE html>\n";
     cout << "<html lang=\"en\">\n";
@@ -221,19 +198,17 @@ int main() {
     cout << "    <link rel=\"stylesheet\" href=\"style.cgi\">\n";
     cout << "  </head>\n";
     cout << "  <body>\n";
+
+    cout << "    <div class=\"status\"><em>" << htmlEscape(statusMessage) << "</em></div>\n"; // show status at top left
     
-    // sticky banner in top-left that tells user their login status
-    cout << "    <div class=\"status\"><em>" << htmlEscape(statusMessage) << "</em></div>\n";
-    
-    // main content container: just a white box with stuff in it
     cout << "    <div class=\"container\">\n";
     cout << "      <h1>All-In Dragons Auctions</h1>\n";
     
-    // check URL for ?error= or ?success= to show friendly messages
+    // show any error or success messages from URL parameters
     string error = getValue(qs, "error");
     string success = getValue(qs, "success");
     
-    // if error code, show correct message box
+    // show error message
     if (!error.empty()) {
         cout << "      <div class=\"error\">\n";
         if (error == "email_exists") {
@@ -245,7 +220,7 @@ int main() {
         } else if (error == "session") {
             cout << "        Session creation failed. Please try again.\n";
         } else {
-            // escape out any weird text before showing it just to be safe
+            
             cout << "        " << htmlEscape(error) << "\n";
         }
         cout << "      </div>\n";
@@ -262,8 +237,7 @@ int main() {
         cout << "      </div>\n";
     }
     
-    // if user already logged in, we don’t show forms.
-    // for now we show links to pages that are coming soon
+    // if logged in show user nav links, else show login and registration forms
     if (sessionState == SESSION_LOGGED_IN) {
         cout << "      <p>You have successfully logged in.</p>\n";
         cout << "      <div class=\"nav\">\n";
@@ -272,8 +246,7 @@ int main() {
         cout << "        <a href=\"#\">My Transactions (coming soon)</a>\n";
         cout << "        <a href=\"login.cgi?action=logout\">Logout</a>\n";
         cout << "      </div>\n";
-    } else {
-        // login box and forms: where users log in
+    } else { // not logged in so show login and registration forms
         cout << "      <h2>Login</h2>\n";
         cout << "      <form action=\"login.cgi\" method=\"post\">\n";
         cout << "        <input type=\"hidden\" name=\"action\" value=\"login\">\n";
@@ -284,7 +257,7 @@ int main() {
         cout << "        <button type=\"submit\">Login</button>\n";
         cout << "      </form>\n";
         
-        // registration box and forms: for users to make new accounts
+        // registration form
         cout << "      <h2>Register New Account</h2>\n";
         cout << "      <form action=\"login.cgi\" method=\"post\">\n";
         cout << "        <input type=\"hidden\" name=\"action\" value=\"register\">\n";
@@ -296,12 +269,11 @@ int main() {
         cout << "      </form>\n";
     }
     
-    // close up main container and page
     cout << "    </div>\n";
     cout << "  </body>\n";
     cout << "</html>\n";
     
-    // closing database at the end 
+ 
     mysql_close(conn);
     return 0;
 }

@@ -10,24 +10,21 @@
 #include <mysql/mysql.h>
 using namespace std;
 
-// DATABASE CREDENTIALS:
+// The DB CREDENTIALS
 const string DB_HOST = "localhost";
 const string DB_USER = "allindragons";
 const string DB_PASS = "snogardnilla_002";
 const string DB_NAME = "cs370_section2_allindragons";
 
-// LOGIN STATES:
-// we are chosing easy numbers to represent the 3 login states: they are as follows
-// 0 = nobody logged in; 1 = active session; 2 = session exists but timed out
+// Creating session states and timeout duration
 const int SESSION_NONE = 0;
 const int SESSION_LOGGED_IN = 1;
 const int SESSION_EXPIRED = 2;
-// after 5 minutes of inactivity (300 seconds) users are logged out
-const int SESSION_TIMEOUT = 300;
+const int SESSION_TIMEOUT = 300; // 5 minutes for inactivity
 
-// PROTECTING AGAINST HTML INJECTION ATTACKS:
-// here is an html escape function to handle people trying to inject special characters into the 
-// input fields to break into the site. The characters you see are turned into their safe versions
+
+// here is an html escape function to handle people trying to inject special characters
+// The characters are turned into their safe versions
 string htmlEscape(const string& s) {
     string r;
     r.reserve(s.size() * 2);
@@ -42,8 +39,7 @@ string htmlEscape(const string& s) {
     return r;
 }
 
-// HANDLING COOKIES: here is where we check to see if cookies exist (getCookie), 
-// and if no cookie exists we return an empty string ""
+// this function reads a cookie from the browser and returns its value
 string getCookie(const string& name) {
     const char* cookies = getenv("HTTP_COOKIE");
     if (!cookies) return "";
@@ -79,6 +75,8 @@ string escapeSQL(MYSQL* conn, const string& input) {
 // this function just decodes url %xx stuff back into characters
 string urlDecode(const string& str) {
     string result;
+
+    // reserve space to avoid multiple allocations
     for (size_t i = 0; i < str.length(); i++) {
         if (str[i] == '+') {
             result += ' ';
@@ -146,18 +144,18 @@ string createSession(MYSQL* conn, int userId) {
 // This function figures out whether the user is currently logged in, 
 // logged out, or has a session that timed out.
 int getSessionState(MYSQL* conn, int& outUserId) {
-    // tries to read a cookie named session from the browser.
+    // get session cookie from browser
     string sessionId = getCookie("session");
     
-    // if no cookie, user isn’t logged in
+    // if no cookie then user is logged out
     if (sessionId.empty()) {
         outUserId = 0;
         return SESSION_NONE;
     }
     
-    // escapes any special characters to prevent SQL injection (escapeSQL)
+    // escape sessionId before using in SQL
     string escapedSid = escapeSQL(conn, sessionId);
-    // make an SQL query to look for session ID in sessions table
+    // query to get user_id and last_activity from sessions table
     string query = "SELECT user_id, UNIX_TIMESTAMP(last_activity) FROM sessions WHERE session_id = '" + escapedSid + "'";
     
     // runs the SQL command and if anything weird user is logged out
@@ -177,7 +175,7 @@ int getSessionState(MYSQL* conn, int& outUserId) {
     // so outUserId is set to 0, it returns SESSION_HOME and frees up memory for results
     MYSQL_ROW row = mysql_fetch_row(result);
     
-    // cookie says there's a session but database doesn’t, so there is none
+    // if no matching session in database then user is logged out
     if (!row) {
         mysql_free_result(result);
         outUserId = 0;
@@ -213,57 +211,55 @@ void renewSessionActivity(MYSQL* conn, const string& sessionId) {
     mysql_query(conn, query.c_str());
 }
 
-// LOGGED-OUT STATE SET BY DELETING THE SESSION ROW FROM THE DATABASE
-// this gets called during logout
+// LOGGING OUT AND SESSION DESTRUCTION
+// this function deletes the session from the sessions table in the database
 void destroySession(MYSQL* conn, const string& sessionId) {
     string escapedSid = escapeSQL(conn, sessionId);
     string query = "DELETE FROM sessions WHERE session_id = '" + escapedSid + "'";
     mysql_query(conn, query.c_str());
 }
 
-// CLEARING THE SESSION COOKIE
-// standard highly used way to have the browser forget the session cookie (so says Google)
-// by setting it to empty and giving it a 1970 expiration date
+// this function clears the session cookie in the users browser
 void clearSessionCookie() {
     cout << "Set-Cookie: session=; HttpOnly; expires=Thu, 01 Jan 1970 00:00:00 GMT\r\n";
 }
 
 int main() {
 
-    // INFO REQUESTS
-    // REQUEST_METHOD tells us if browser did GET or POST
-    // QUERY_STRING holds stuff after "?" in the URL (like action=logout)
+    // CGI environment variables we need
+    // REQUEST_METHOD: GET or POST
     const char* requestMethod = getenv("REQUEST_METHOD");
     const char* queryString = getenv("QUERY_STRING");
     
-    // 1. connect to the database. If fails, can’t do anything else
+    // 1. connect to the database
     MYSQL* conn = mysql_init(NULL);
+    // if connection fails, we send a basic error to the browser
     if (!mysql_real_connect(conn, DB_HOST.c_str(), DB_USER.c_str(), 
                            DB_PASS.c_str(), DB_NAME.c_str(), 0, NULL, 0)) {
-        // Minimal error page so the user sees something.
         cout << "Content-type: text/html\r\n\r\n";
         cout << "<html><body><h1>Database Connection Error</h1></body></html>\n";
         return 1;
     }
     
-    // 2. figure out session situation at the very start
+    // 2. check session state (none, logged in, expired)
     int userId = 0;
     int sessionState = getSessionState(conn, userId);
     
-    // If logged in and active keep session alive by updating last_activity.
+    // If user is logged in renew session activity to prevent timeout.
     if (sessionState == SESSION_LOGGED_IN) {
         string sessionId = getCookie("session");
         renewSessionActivity(conn, sessionId);
     }
     
-    // If session timed out clear browser cookie so user is "logged out".
+    // If session expired clear the cookie in the browser.
     if (sessionState == SESSION_EXPIRED) {
         clearSessionCookie();
     }
     
-    // 3. handle logout action by ?action=logout
+    // 3. handle GET requests with action=logout to log the user out
     if (queryString && string(queryString).find("action=logout") != string::npos) {
         string sessionId = getCookie("session");
+        // only try to destroy session if we have a session id
         if (!sessionId.empty()) {
             destroySession(conn, sessionId);   // remove from DB
         }
@@ -273,9 +269,9 @@ int main() {
         return 0;
     }
     
-    // 4. handle POST form submissions either register or login
+    // 4. handle POST requests for login and registration
     if (requestMethod && string(requestMethod) == "POST") {
-        // The browser tells us how many bytes are in the POST body.
+        // read the CONTENT_LENGTH env variable to know how many bytes to read
         const char* contentLength = getenv("CONTENT_LENGTH");
         int length = contentLength ? atoi(contentLength) : 0;
         
@@ -294,53 +290,47 @@ int main() {
         string email = getValue(postData, "email");
         string password = getValue(postData, "password");
         
-        // sql injection prevention:
-        // escape email and password before using in SQL 
+        // sanitize email and password to prevent SQL injection attacks
         string escapedEmail = escapeSQL(conn, email);
         string escapedPassword = escapeSQL(conn, password);
         
-        // REGISTERING NEW USERS:
-        // insert a new row into "users" using email and password typed
+        // now handle the two possible actions: register or login
         if (action == "register") {
             string query = "INSERT INTO users (email, password) VALUES ('" + 
                           escapedEmail + "', '" + escapedPassword + "')";
-            
+
+            // if there is a problem (like email already exists) send error
             if (mysql_query(conn, query.c_str())) {
-                // duplicate email send message to user
                 cout << "Location: ./index.cgi?error=email_exists\r\n\r\n";
-            } else {
-                // registered successfully, tell user to log in
+            } else { // all good send success message
                 cout << "Location: ./index.cgi?success=registered\r\n\r\n";
             }
+        // we don't log the user in right away, they must log in manually
         } else if (action == "login") {
-            // look up email and password in users table and upon a match
-            // create a new session and set cookie          
+                     
             string query = "SELECT user_id FROM users WHERE email = '" + 
                           escapedEmail + "' AND password = '" + escapedPassword + "'";
             
-            // database problems: send user a basic error
+            // if there is a problem with the query send basic error
             if (mysql_query(conn, query.c_str())) {
                 cout << "Location: ./index.cgi?error=database\r\n\r\n";
             } else {
                 MYSQL_RES* result = mysql_store_result(conn);
                 MYSQL_ROW row = mysql_fetch_row(result);
                 
-                // we got a user! make session set cookie
+                // if we got a matching user row then log them in
                 if (row) {
                     int loggedInUserId = atoi(row[0]);
                     string sessionId = createSession(conn, loggedInUserId);
 
-                    
+                    // if we got a session id back then set cookie and redirect home
                     if (!sessionId.empty()) {
-                        // IMPORTANT: cookie header must come BEFORE Location redirect
                         cout << "Set-Cookie: session=" << sessionId << "; HttpOnly\r\n";
                         cout << "Location: ./index.cgi\r\n\r\n";
-                    } else {
-                        // couldn’t make session for some reason send user a basic error
+                    } else { // if session creation failed send error
                         cout << "Location: ./index.cgi?error=session\r\n\r\n";
                     }
-                } else {
-                    // no matching user send wrong email or password message
+                } else { // no matching user found send invalid error
                     cout << "Location: ./index.cgi?error=invalid\r\n\r\n";
                 }
                 
@@ -355,9 +345,7 @@ int main() {
         return 0;
     }
     
-    // DIRECTLY ACCESSING LOGIN.CGI:
-    // this basic page shows up when directly accessing login.cgi
-    // whereas the actual form is on index.cgi
+    // 5. if we get here just show a basic HTML page with login/register forms
     cout << "Content-type: text/html\r\n\r\n";
     cout << "<!DOCTYPE html>\n";
     cout << "<html lang=\"en\">\n";
@@ -372,7 +360,7 @@ int main() {
     cout << "      <h1>Authentication Handler</h1>\n";
     cout << "      <p>This page handles login and registration.</p>\n";
     
-    // if the user already logged in we show a quick logout form.
+    // show login and registration forms only if not logged in
     if (sessionState == SESSION_LOGGED_IN) {
         cout << "      <p>You are currently logged in.</p>\n";
         cout << "      <form action=\"login.cgi\" method=\"get\">\n";
@@ -388,7 +376,7 @@ int main() {
     cout << "  </body>\n";
     cout << "</html>\n";
     
-    // closing database at the end 
+
     mysql_close(conn);
     return 0;
 }

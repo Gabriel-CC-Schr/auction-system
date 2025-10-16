@@ -7,6 +7,7 @@
 #include <iostream>
 using namespace std;
 
+// Beautiful CSS styles for our auction site
 int main() {
     cout << "Content-type: text/css\r\n\r\n";
     
