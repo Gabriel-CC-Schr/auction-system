@@ -16,21 +16,21 @@
 
 using namespace std;
 
-// DATABASE CREDENTIALS:
+// Database Credentials
 const string DB_HOST = "localhost";
 const string DB_USER = "allindragons";
 const string DB_PASS = "snogardnilla_002";
 const string DB_NAME = "cs370_section2_allindragons";
 
-// LOGIN STATES:
+// The login states
 // we are chosing easy numbers to represent the 3 login states: they are as follows
-// 0 = nobody logged in; 1 = active session; 2 = session exists but timed out
+// 0 = nobody logged in; 1 = active session; 2 = session exists
 const int SESSION_NONE = 0;
 const int SESSION_LOGGED_IN = 1;
 const int SESSION_EXPIRED = 2;
 
-// INACTIVITY TIMEOUT 
-// user logged out automatically after 5 minutes (=300 seconds)
+// For session timeout duration:
+// 5 minutes automatic logout
 const int SESSION_TIMEOUT = 300;
 
 // PROTECTING AGAINST HTML INJECTION ATTACKS:

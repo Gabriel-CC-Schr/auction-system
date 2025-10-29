@@ -10,21 +10,21 @@
 #include <mysql/mysql.h>
 using namespace std;
 
-// DATABASE CREDENTIALS:
+// Database Credentials
 const string DB_HOST = "localhost";
 const string DB_USER = "allindragons";
 const string DB_PASS = "snogardnilla_002";
 const string DB_NAME = "cs370_section2_allindragons";
 
-// LOGIN STATES:
+// The login states
 // we are chosing easy numbers to represent the 3 login states: they are as follows
 // 0 = nobody logged in; 1 = active session; 2 = session exists but timed out
 const int SESSION_NONE = 0;
 const int SESSION_LOGGED_IN = 1;
 const int SESSION_EXPIRED = 2;
 
-// INACTIVITY TIMEOUT 
-// user logged out automatically after 5 minutes (=300 seconds)
+// For Inactivity Timeout
+// 5 minutes automatic logout
 const int SESSION_TIMEOUT = 300;
 
 // PROTECTING AGAINST HTML INJECTION ATTACKS:
@@ -146,7 +146,7 @@ int getSessionState(MYSQL* conn, int& outUserId) {
     
     MYSQL_ROW row = mysql_fetch_row(result);
     
-    // cookie says was a session, but DB doesn’t have
+    // cookie says was a session, but DB doesnï¿½t have
     if (!row) {
         mysql_free_result(result);
         outUserId = 0;
@@ -183,11 +183,11 @@ int main() {
     const char* queryString = getenv("QUERY_STRING");
     string qs = queryString ? queryString : "";
     
-    // 1. connect to database: if fails can’t check sessions or do much else
+    // 1. connect to database: if fails canï¿½t check sessions or do much else
     MYSQL* conn = mysql_init(NULL);
     if (!mysql_real_connect(conn, DB_HOST.c_str(), DB_USER.c_str(), 
                            DB_PASS.c_str(), DB_NAME.c_str(), 0, NULL, 0)) {
-        // We’ll print a basic error page so the user sees something helpful.
+        // Weï¿½ll print a basic error page so the user sees something helpful.
         cout << "Content-type: text/html\r\n\r\n";
         cout << "<html><body><h1>Database Connection Error</h1></body></html>\n";
         return 1;
@@ -197,7 +197,7 @@ int main() {
     int userId = 0;
     int sessionState = getSessionState(conn, userId);
     
-    // if session expired, clear cookie so browser doesn’t think it’s still valid
+    // if session expired, clear cookie so browser doesnï¿½t think itï¿½s still valid
     if (sessionState == SESSION_EXPIRED) {
         clearSessionCookie();
     }
@@ -269,7 +269,7 @@ int main() {
         cout << "      </div>\n";
     }
     
-    // if user already logged in, we don’t show forms.
+    // if user already logged in, we donï¿½t show forms.
     // for now we show links to pages that are coming soon
     if (sessionState == SESSION_LOGGED_IN) {
         cout << "      <p>You have successfully logged in.</p>\n";
