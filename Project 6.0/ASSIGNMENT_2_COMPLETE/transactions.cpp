@@ -213,7 +213,7 @@ int main() {
         return 1;
     }
     
-    // 1B. error page to show we couldn't connect to the database
+    //  error page to show we couldn't connect to the database
     if (mysql_real_connect(conn, DB_HOST.c_str(), DB_USER.c_str(), 
                           DB_PASS.c_str(), DB_NAME.c_str(), 0, NULL, 0) == NULL) {
         cout << "Content-type: text/html\r\n\r\n";
@@ -518,7 +518,7 @@ int main() {
         mysql_free_result(result);
     }
     
-    // closing database at the end
+
     mysql_close(conn);
     
     // close up main container and page

@@ -308,7 +308,7 @@ int main() {
     cout << "  </body>\n";
     cout << "</html>\n";
     
-    // closing database at the end 
+    
     mysql_close(conn);
 
     return 0;
