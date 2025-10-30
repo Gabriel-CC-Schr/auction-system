@@ -190,12 +190,12 @@ string formatTimeRemaining(time_t endTime) {
 
 int main() {
 
-    // 1. CONNECT TO DATABASE FIRST:
+    // CONNECT TO DATABASE FIRST:
     // we need database connection to check sessions and pull transaction history
     // the following two blocks are just html for error pages the user will see
     // upon a failure with the database
 
-    // 1A. error page to show database didn't even initialize
+    // error page to show database didn't even initialize
     MYSQL* conn = mysql_init(NULL);
     if (conn == NULL) {
         cout << "Content-type: text/html\r\n\r\n";
@@ -232,7 +232,7 @@ int main() {
         return 1;
     }
     
-    // 2. CHECK SESSION STATE:
+    // CHECK SESSION STATE:
     // this transactions page requires login, so we check if user has a valid session
     // if not logged in we redirect them to login page
     int currentUserId = 0;
@@ -259,7 +259,7 @@ int main() {
         return 0;
     }
     
-    // 3. PREPARE STATUS MESSAGE FOR BANNER:
+    // PREPARE STATUS MESSAGE FOR BANNER:
     // this little message shows at top-left of page telling user their login status
     string statusMessage;
     if (sessionState == SESSION_LOGGED_IN) {
@@ -270,12 +270,12 @@ int main() {
         statusMessage = "not logged in yet";
     }
     
-    // 4. RENEW SESSION ACTIVITY:
+    //  SESSION ACTIVITY:
     // user is active on this page so we update last_activity to keep the session alive
     string sessionId = getCookie("session");
     renewSessionActivity(conn, sessionId);
     
-    // 5. START BUILDING HTML PAGE:
+    // START BUILDING HTML PAGE:
     // we send HTTP header first then start building the page structure
     cout << "Content-type: text/html\r\n\r\n";
     cout << "<!DOCTYPE html>\n";
@@ -304,7 +304,7 @@ int main() {
     cout << "            <a href=\"./login.cgi?action=logout\">Logout</a>\n";
     cout << "        </div>\n";
     
-    // 6. SECTION 1: ITEMS USER IS SELLING
+    // SECTION 1: ITEMS USER IS SELLING
     // query database for all auctions where current user is the seller
     // shows both active and closed auctions
     cout << "        <h2>Selling:</h2>\n";
@@ -372,7 +372,7 @@ int main() {
         mysql_free_result(result);
     }
     
-    // 7. SECTION 2: ITEMS USER HAS PURCHASED
+    // SECTION 2: ITEMS USER HAS PURCHASED
     // query for closed auctions where current user is the winner
     cout << "        <h2>Purchased:</h2>\n";
     string purchaseQuery = "SELECT auction_id, item_description, current_bid FROM auctions "
@@ -410,7 +410,7 @@ int main() {
         mysql_free_result(result);
     }
     
-    // 8. SECTION 3: USERS CURRENT BIDS
+    // SECTION 3: USERS CURRENT BIDS
     // query for active auctions where user has placed at least one bid
     // shows if user is currently winning or has been outbid
     cout << "        <h2>Current Bids:</h2>\n";
@@ -476,7 +476,7 @@ int main() {
         mysql_free_result(result);
     }
     
-    // 9. SECTION 4: AUCTIONS USER LOST
+    // SECTION 4: AUCTIONS USER LOST
     // query for closed auctions where user bid but someone else won
     cout << "        <h2>Lost Auctions:</h2>\n";
     string lostQuery = "SELECT DISTINCT a.auction_id, a.item_description, a.current_bid "

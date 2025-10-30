@@ -18,7 +18,7 @@ const string DB_NAME = "cs370_section2_allindragons";
 
 // The login states
 // we are chosing easy numbers to represent the 3 login states: they are as follows
-// 0 = nobody logged in; 1 = active session; 2 = session exists but timed out
+
 const int SESSION_NONE = 0;
 const int SESSION_LOGGED_IN = 1;
 const int SESSION_EXPIRED = 2;
@@ -43,8 +43,7 @@ string htmlEscape(const string& s) {
     }
     return r;
 }
-
-// GET NAME OF COOKIE:
+// Get Cookie Value
 // this function looks for "name=" and returns value for that cookie, or "" if not found
 // (browser sends cookies in environment variable called HTTP_COOKIE which is 
 // a long string like: "session=abc123; theme=light" )
@@ -120,7 +119,7 @@ string getValue(const string& data, const string& key) {
 // here is where we handle sessions for users logged in or not
 // we check for session cookie in browser and if isn't one noone logged in
 // if there is cookie we lookup seession ID in database: if not found assume not logged in
-// if more than 5 minutes session EXPIRED
+// if more than 5min session EXPIRED
 // otherwise user is LOGGED_IN and we set outUderId to that user's ID.
 int getSessionState(MYSQL* conn, int& outUserId) {
     string sessionId = getCookie("session");
@@ -183,26 +182,26 @@ int main() {
     const char* queryString = getenv("QUERY_STRING");
     string qs = queryString ? queryString : "";
     
-    // 1. connect to database: if fails can�t check sessions or do much else
+    // connect to database: if fails cant check sessions or do much else
     MYSQL* conn = mysql_init(NULL);
     if (!mysql_real_connect(conn, DB_HOST.c_str(), DB_USER.c_str(), 
                            DB_PASS.c_str(), DB_NAME.c_str(), 0, NULL, 0)) {
-        // We�ll print a basic error page so the user sees something helpful.
+        // We'll print a basic error page so the user sees something helpful.
         cout << "Content-type: text/html\r\n\r\n";
         cout << "<html><body><h1>Database Connection Error</h1></body></html>\n";
         return 1;
     }
     
-    // 2. figure out the session state (logged in, expired, or none)
+    // figure out the session state (logged in, expired, or none)
     int userId = 0;
     int sessionState = getSessionState(conn, userId);
     
-    // if session expired, clear cookie so browser doesn�t think it�s still valid
+    // if session expired, clear cookie so browser doesn't think it's still valid
     if (sessionState == SESSION_EXPIRED) {
         clearSessionCookie();
     }
-    
-    // 3. prepare little status message shown at top-left of page
+
+    // prepare little status message shown at top-left of page
     string statusMessage;
     if (sessionState == SESSION_LOGGED_IN) {
         statusMessage = "you are currently logged in";
@@ -211,8 +210,8 @@ int main() {
     } else {
         statusMessage = "not logged in yet";
     }
-    
-    // 4. start sending our HTML page back to browser
+
+    // start sending our HTML page back to browser
     cout << "Content-type: text/html\r\n\r\n";
     cout << "<!DOCTYPE html>\n";
     cout << "<html lang=\"en\">\n";
@@ -269,7 +268,7 @@ int main() {
         cout << "      </div>\n";
     }
     
-    // if user already logged in, we don�t show forms.
+    // if user already logged in, we don't show forms.
     // for now we show links to pages that are coming soon
     if (sessionState == SESSION_LOGGED_IN) {
         cout << "      <p>You have successfully logged in.</p>\n";

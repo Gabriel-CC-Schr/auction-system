@@ -10,19 +10,20 @@
 #include <mysql/mysql.h>
 using namespace std;
 
-// DATABASE CREDENTIALS:
+// Database Credentials
 const string DB_HOST = "localhost";
 const string DB_USER = "allindragons";
 const string DB_PASS = "snogardnilla_002";
 const string DB_NAME = "cs370_section2_allindragons";
 
-// LOGIN STATES:
+// The login states
 // we are chosing easy numbers to represent the 3 login states: they are as follows
 // 0 = nobody logged in; 1 = active session; 2 = session exists but timed out
 const int SESSION_NONE = 0;
 const int SESSION_LOGGED_IN = 1;
 const int SESSION_EXPIRED = 2;
-// after 5 minutes of inactivity (300 seconds) users are logged out
+// For Inactivity Timeout
+// 5 minutes automatic logout
 const int SESSION_TIMEOUT = 300;
 
 // PROTECTING AGAINST HTML INJECTION ATTACKS:
@@ -149,7 +150,7 @@ int getSessionState(MYSQL* conn, int& outUserId) {
     // tries to read a cookie named session from the browser.
     string sessionId = getCookie("session");
     
-    // if no cookie, user isn’t logged in
+    // if no cookie, user isn't logged in
     if (sessionId.empty()) {
         outUserId = 0;
         return SESSION_NONE;
@@ -176,8 +177,8 @@ int getSessionState(MYSQL* conn, int& outUserId) {
     // fetches first and only row from query result and if no match then cookie is useless
     // so outUserId is set to 0, it returns SESSION_HOME and frees up memory for results
     MYSQL_ROW row = mysql_fetch_row(result);
-    
-    // cookie says there's a session but database doesn’t, so there is none
+
+    // cookie says there's a session but database doesn't, so there is none
     if (!row) {
         mysql_free_result(result);
         outUserId = 0;
@@ -204,7 +205,7 @@ int getSessionState(MYSQL* conn, int& outUserId) {
     return SESSION_LOGGED_IN;
 }
 
-// USER INACTIVITY MONITOR FOR 5 MINUTE AUTOMATIC LOGOUT
+// RENEWING SESSION ACTIVITY:
 // here we update last_activity with NOW() to refresh the 5 minute session
 // for users who are still active on the site
 void renewSessionActivity(MYSQL* conn, const string& sessionId) {
@@ -236,7 +237,7 @@ int main() {
     const char* requestMethod = getenv("REQUEST_METHOD");
     const char* queryString = getenv("QUERY_STRING");
     
-    // 1. connect to the database. If fails, can’t do anything else
+    //  connect to the database. If fails, canï¿½t do anything else
     MYSQL* conn = mysql_init(NULL);
     if (!mysql_real_connect(conn, DB_HOST.c_str(), DB_USER.c_str(), 
                            DB_PASS.c_str(), DB_NAME.c_str(), 0, NULL, 0)) {
@@ -246,7 +247,7 @@ int main() {
         return 1;
     }
     
-    // 2. figure out session situation at the very start
+    // figure out session situation at the very start
     int userId = 0;
     int sessionState = getSessionState(conn, userId);
     
@@ -261,7 +262,7 @@ int main() {
         clearSessionCookie();
     }
     
-    // 3. handle logout action by ?action=logout
+    // handle logout action from URL ?action=logout
     if (queryString && string(queryString).find("action=logout") != string::npos) {
         string sessionId = getCookie("session");
         if (!sessionId.empty()) {
@@ -273,7 +274,7 @@ int main() {
         return 0;
     }
     
-    // 4. handle POST form submissions either register or login
+    // handle POST form submissions either register or login
     if (requestMethod && string(requestMethod) == "POST") {
         // The browser tells us how many bytes are in the POST body.
         const char* contentLength = getenv("CONTENT_LENGTH");
@@ -336,7 +337,7 @@ int main() {
                         cout << "Set-Cookie: session=" << sessionId << "; HttpOnly\r\n";
                         cout << "Location: ./index.cgi\r\n\r\n";
                     } else {
-                        // couldn’t make session for some reason send user a basic error
+                        // couldn't make session for some reason send user a basic error
                         cout << "Location: ./index.cgi?error=session\r\n\r\n";
                     }
                 } else {
@@ -388,7 +389,7 @@ int main() {
     cout << "  </body>\n";
     cout << "</html>\n";
     
-    // closing database at the end 
+   
     mysql_close(conn);
 
     return 0;
