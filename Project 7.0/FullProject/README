@@ -1,2 +1,0 @@
-Full Project with a "common.hpp" file added to include all the common code in a single file,
-rather than having redundant copies of code in all the files
