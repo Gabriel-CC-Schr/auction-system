@@ -1,0 +1,2 @@
+project tweaked so all common code is now in a "common.cpp" file rather than 
+repeating over and over in all the files
