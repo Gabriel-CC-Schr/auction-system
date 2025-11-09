@@ -1,0 +1,3 @@
+this is the full auction system: we could submit assignment 3 just by omitting the listings.cpp
+file. to submit assignment 4 we just need to remove the "(Coming Soon)" words from the 
+navigation links in index.cpp,trade.cpp and transactions.cpp
