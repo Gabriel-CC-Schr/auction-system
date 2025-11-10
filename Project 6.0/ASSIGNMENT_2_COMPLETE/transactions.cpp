@@ -4,33 +4,33 @@
 // Guillermo Rojas, Benjamin Ezike, Gabriel Cruz-Chavez, Paul Porter
 //*******************************************
 
-// transactions.cpp - Display user's transaction history
-// This file shows items user is selling, purchased, bidding on, and didn't win
+// transactions.cpp - This file is the component of our Auction System that 
+// displays what the user is selling, bidding on, has purchased, and what they lost
 
-#include <iostream>      // for input/output operations
-#include <string>        // for string handling
-#include <ctime>         // for time operations
-#include <mysql/mysql.h> // for MySQL database connection
-#include <cstdlib>       // for getenv() and atoi()
-#include <vector>        // for vector data structures
+#include <iostream>      
+#include <string>        
+#include <ctime>         
+#include <mysql/mysql.h> 
+#include <cstdlib>       
+#include <vector>        
 
 using namespace std;
 
-// DATABASE CREDENTIALS:
+// Database Credentials
 const string DB_HOST = "localhost";
 const string DB_USER = "allindragons";
 const string DB_PASS = "snogardnilla_002";
 const string DB_NAME = "cs370_section2_allindragons";
 
-// LOGIN STATES:
+// The login states
 // we are chosing easy numbers to represent the 3 login states: they are as follows
-// 0 = nobody logged in; 1 = active session; 2 = session exists but timed out
+// 0 = nobody logged in; 1 = active session; 2 = session exists
 const int SESSION_NONE = 0;
 const int SESSION_LOGGED_IN = 1;
 const int SESSION_EXPIRED = 2;
 
-// INACTIVITY TIMEOUT 
-// user logged out automatically after 5 minutes (=300 seconds)
+// For session timeout duration:
+// 5 minutes automatic logout
 const int SESSION_TIMEOUT = 300;
 
 // PROTECTING AGAINST HTML INJECTION ATTACKS:
@@ -86,58 +86,68 @@ string escapeSQL(MYSQL* conn, const string& input) {
     return result;
 }
 
-// GETTING SESSION STATE FROM THE SERVER:
-// here is where we handle sessions for users logged in or not
-// we check for session cookie in browser and if isn't one noone logged in
-// if there is cookie we lookup seession ID in database: if not found assume not logged in
-// if more than 5 minutes session EXPIRED
-// otherwise user is LOGGED_IN and we set outUderId to that user's ID.
+// CHECKING USERS LOGIN STATE:
+// This function figures out whether the user is currently logged in, 
+// logged out, or has a session that timed out.
 int getSessionState(MYSQL* conn, int& outUserId) {
+    // tries to read a cookie named session from the browser.
     string sessionId = getCookie("session");
     
+    // if no cookie, user isn’t logged in
     if (sessionId.empty()) {
         outUserId = 0;
         return SESSION_NONE;
     }
     
+    // escapes any special characters to prevent SQL injection (escapeSQL)
     string escapedSid = escapeSQL(conn, sessionId);
+    // make an SQL query to look for session ID in sessions table
     string query = "SELECT user_id, UNIX_TIMESTAMP(last_activity) FROM sessions WHERE session_id = '" + escapedSid + "'";
     
+    // runs the SQL command and if anything weird user is logged out
     if (mysql_query(conn, query.c_str())) {
         outUserId = 0;
         return SESSION_NONE;
     }
     
+    // grabs query result from SQL, but assumes user logged out if it cant
     MYSQL_RES* result = mysql_store_result(conn);
     if (!result) {
         outUserId = 0;
         return SESSION_NONE;
     }
     
+    // fetches first and only row from query result and if no match then cookie is useless
+    // so outUserId is set to 0, it returns SESSION_HOME and frees up memory for results
     MYSQL_ROW row = mysql_fetch_row(result);
     
-    // cookie says was a session, but DB doesn't have
+    // cookie says there's a session but database doesn’t, so there is none
     if (!row) {
         mysql_free_result(result);
         outUserId = 0;
         return SESSION_NONE;
     }
-    
+
+    // converts database strings into numbers:
+    // userId: numeric ID of logged in user.
+    // lastActivity: in seconds since 1970 UNIX time.
+    // frees MySQL result memory
     int userId = atoi(row[0]);
     long lastActivity = atol(row[1]);
     mysql_free_result(result);
     
-    // session exists, but user idle too long over 5 mins
+    // too long without activity user booted
     long currentTime = time(NULL);
     if (currentTime - lastActivity > SESSION_TIMEOUT) {
         outUserId = 0;
         return SESSION_EXPIRED;
     }
     
-    // session good, user active
+    // if we get all the way down here the session still good
     outUserId = userId;
     return SESSION_LOGGED_IN;
 }
+
 
 // USER INACTIVITY MONITOR FOR 5 MINUTE AUTOMATIC LOGOUT
 // here we update last_activity with NOW() to refresh the 5 minute session
@@ -153,36 +163,39 @@ void renewSessionActivity(MYSQL* conn, const string& sessionId) {
 // and formats it nicely as "3d 5h 12m" (days, hours, minutes)
 // if auction already ended it returns "ENDED"
 string formatTimeRemaining(time_t endTime) {
-    time_t now = time(0);                // get current time
-    long long secondsLeft = endTime - now;  // calculate seconds remaining
+    time_t now = time(0);                      // get current time
+    long long secondsLeft = endTime - now;     // calculate seconds remaining
     
-    if (secondsLeft <= 0) {              // if auction has ended
+    if (secondsLeft <= 0) {                    // if auction has ended
         return "ENDED";
     }
     
-    // Calculate days, hours, minutes
-    int days = secondsLeft / 86400;      // 86400 seconds in a day
+    // Calculates days, hours, minutes
+    int days = secondsLeft / 86400;            // 86400 seconds in a day
     int hours = (secondsLeft % 86400) / 3600;  // 3600 seconds in an hour
     int minutes = (secondsLeft % 3600) / 60;   // 60 seconds in a minute
     
-    // Build formatted string
+    // Builds a formatted string
     string result = "";
-    if (days > 0) {                      // if more than a day left
+    if (days > 0) {                            // if more than a day left
         result += to_string(days) + "d ";
     }
-    if (hours > 0 || days > 0) {         // if hours or days
+    if (hours > 0 || days > 0) {               // if hours or days
         result += to_string(hours) + "h ";
     }
-    result += to_string(minutes) + "m";  // always show minutes
+    result += to_string(minutes) + "m";        // always show minutes
     
     return result;
 }
 
 int main() {
 
-    // 1. CONNECT TO DATABASE FIRST:
+    // CONNECT TO DATABASE FIRST:
     // we need database connection to check sessions and pull transaction history
-    // if connection fails we show a basic error page
+    // the following two blocks are just html for error pages the user will see
+    // upon a failure with the database
+
+    // error page to show database didn't even initialize
     MYSQL* conn = mysql_init(NULL);
     if (conn == NULL) {
         cout << "Content-type: text/html\r\n\r\n";
@@ -200,7 +213,7 @@ int main() {
         return 1;
     }
     
-    // actually connect to the database using our credentials
+    //  error page to show we couldn't connect to the database
     if (mysql_real_connect(conn, DB_HOST.c_str(), DB_USER.c_str(), 
                           DB_PASS.c_str(), DB_NAME.c_str(), 0, NULL, 0) == NULL) {
         cout << "Content-type: text/html\r\n\r\n";
@@ -219,8 +232,8 @@ int main() {
         return 1;
     }
     
-    // 2. CHECK SESSION STATE:
-    // transactions page requires login, so we check if user has valid session
+    // CHECK SESSION STATE:
+    // this transactions page requires login, so we check if user has a valid session
     // if not logged in we redirect them to login page
     int currentUserId = 0;
     int sessionState = getSessionState(conn, currentUserId);
@@ -246,7 +259,7 @@ int main() {
         return 0;
     }
     
-    // 3. PREPARE STATUS MESSAGE FOR BANNER:
+    // PREPARE STATUS MESSAGE FOR BANNER:
     // this little message shows at top-left of page telling user their login status
     string statusMessage;
     if (sessionState == SESSION_LOGGED_IN) {
@@ -257,12 +270,12 @@ int main() {
         statusMessage = "not logged in yet";
     }
     
-    // 4. RENEW SESSION ACTIVITY:
-    // user is active on this page so we update last_activity to keep session alive
+    //  SESSION ACTIVITY:
+    // user is active on this page so we update last_activity to keep the session alive
     string sessionId = getCookie("session");
     renewSessionActivity(conn, sessionId);
     
-    // 5. START BUILDING HTML PAGE:
+    // START BUILDING HTML PAGE:
     // we send HTTP header first then start building the page structure
     cout << "Content-type: text/html\r\n\r\n";
     cout << "<!DOCTYPE html>\n";
@@ -275,7 +288,7 @@ int main() {
     cout << "  </head>\n";
     cout << "  <body>\n";
     
-    // sticky banner in top-left that tells user their login status
+    // little status message in top-left that tells user their login status
     cout << "    <div class=\"status\"><em>" << htmlEscape(statusMessage) << "</em></div>\n";
     
     // main content container: just a white box with stuff in it
@@ -283,7 +296,7 @@ int main() {
     cout << "        <h1>My Transactions</h1>\n";
     
     // NAVIGATION MENU:
-    // links to other pages in the auction system
+    // links to other pages in the Auction System
     cout << "        <div class=\"nav\">\n";
     cout << "            <a href=\"./listings.cgi\">Listings (Coming Soon)</a>\n";
     cout << "            <a href=\"./trade.cgi\">Buy/Sell (Coming Soon)</a>\n";
@@ -291,7 +304,7 @@ int main() {
     cout << "            <a href=\"./login.cgi?action=logout\">Logout</a>\n";
     cout << "        </div>\n";
     
-    // 6. SECTION 1: ITEMS I'M SELLING
+    // SECTION 1: ITEMS USER IS SELLING
     // query database for all auctions where current user is the seller
     // shows both active and closed auctions
     cout << "        <h2>Selling:</h2>\n";
@@ -359,7 +372,7 @@ int main() {
         mysql_free_result(result);
     }
     
-    // 7. SECTION 2: ITEMS I PURCHASED
+    // SECTION 2: ITEMS USER HAS PURCHASED
     // query for closed auctions where current user is the winner
     cout << "        <h2>Purchased:</h2>\n";
     string purchaseQuery = "SELECT auction_id, item_description, current_bid FROM auctions "
@@ -397,7 +410,7 @@ int main() {
         mysql_free_result(result);
     }
     
-    // 8. SECTION 3: MY CURRENT BIDS
+    // SECTION 3: USERS CURRENT BIDS
     // query for active auctions where user has placed at least one bid
     // shows if user is currently winning or has been outbid
     cout << "        <h2>Current Bids:</h2>\n";
@@ -463,7 +476,7 @@ int main() {
         mysql_free_result(result);
     }
     
-    // 9. SECTION 4: AUCTIONS I DIDN'T WIN
+    // SECTION 4: AUCTIONS USER LOST
     // query for closed auctions where user bid but someone else won
     cout << "        <h2>Lost Auctions:</h2>\n";
     string lostQuery = "SELECT DISTINCT a.auction_id, a.item_description, a.current_bid "
@@ -505,10 +518,10 @@ int main() {
         mysql_free_result(result);
     }
     
-    // 10. CLEANUP AND CLOSE:
-    // close database connection and finish HTML page
+
     mysql_close(conn);
     
+    // close up main container and page
     cout << "    </div>\n";
     cout << "  </body>\n";
     cout << "</html>\n";

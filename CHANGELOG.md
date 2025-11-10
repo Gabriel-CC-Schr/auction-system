@@ -1,5 +1,14 @@
 # Changes
 
+
+## Added SHA 256 need testing and Email Validator
+--- ***Gabriel****
+Added functions fpr SHA 256 for password 
+and a Email Validator checking for @,., and other patters
+R"((^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$))"
+need testing
+
+
 ## Deletes all main files to use Pauls Miscellaneierporter
 ---
 ### **Gabriel**
