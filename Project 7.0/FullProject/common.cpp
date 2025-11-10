@@ -27,7 +27,7 @@ const int SESSION_LOGGED_IN = 1;
 const int SESSION_EXPIRED = 2;
 
 // INACTIVITY TIMEOUT 
-// user logged out automatically after 5 minutes (=300 seconds)
+// / logging out the user after 5 minutes (300 seconds) of inactivity
 const int SESSION_TIMEOUT = 300;
 
 // PROTECTING AGAINST HTML INJECTION ATTACKS:
