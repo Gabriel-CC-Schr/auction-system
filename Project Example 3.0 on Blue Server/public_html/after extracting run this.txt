@@ -1,4 +1,0 @@
-sudo apt-get install g++ libmysqlclient-dev libssl-dev
-make
-chmod 755 cgi/*.cgi
-# copy .auth_bin .transactions_bin .trade_bin .listings_bin and *.cgi to ~/public_html
