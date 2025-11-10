@@ -269,3 +269,21 @@ void destroySession(MYSQL* conn, const string& sessionId) {
     string query = "DELETE FROM sessions WHERE session_id = '" + escapedSid + "'";
     mysql_query(conn, query.c_str());
 }
+
+
+//Email validation functions
+
+// need testing for this function
+bool EmailisValid(const string& email){
+    size_t atPos = email.find('@');
+    size_t dotPos = email.find('.', atPos);
+    return (atPos != string::npos && dotPos != string::npos && atPos > 0 && dotPos > atPos + 1 && dotPos < email.length() - 1);
+} 
+
+
+// need testing for this function
+bool isValidEmail(const string& email) {
+    const regex pattern(R"((^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$))");
+    return regex_match(email, pattern);
+} 
+
