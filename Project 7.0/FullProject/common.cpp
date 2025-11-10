@@ -102,6 +102,19 @@ string urlDecode(const string& str) {
     return result;
 }
 
+
+// SHA-256 HASH
+string hashingPass(const string& password){
+    unsgned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char*>(password.c_str()), passwpord.length(), hash);
+
+    stringsteasm ss;
+    for(int i = 0; i < SHA256_DIGEST_LENGTH; i++){
+        ss << hex << setw(2) << setfill('0') << static_cast<int>(hash[i]);
+    }
+    return ss.str();
+}
+
 // GETTING VALUE PAIRS OUT OF URL GOBBLEDEYGOOK TO SEND TO urlDECODE
 // this extracts key=value pairs separated by & to send to urlDecode (above)
 // to make sure spaces and symbols are correct. 
