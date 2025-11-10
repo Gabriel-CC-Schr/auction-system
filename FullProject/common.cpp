@@ -39,12 +39,24 @@ string htmlEscape(const string& s) {
     string r;
     r.reserve(s.size() * 2);
     for (char c : s) {
-        if (c == '&') r += "&amp;";
-        else if (c == '<') r += "&lt;";
-        else if (c == '>') r += "&gt;";
-        else if (c == '"') r += "&quot;";
-        else if (c == '\'') r += "&#39;";
-        else r += c;
+        if (c == '&') {
+            r += "&amp;";
+        }
+        else if (c == '<') {
+            r += "&lt;";
+        }
+        else if (c == '>') {
+            r += "&gt;";
+        }
+        else if (c == '"') {
+            r += "&quot;";
+        }
+        else if (c == '\'') {
+            r += "&#39;";
+        }
+        else {
+            r += c;
+        }
     }
     return r;
 }
@@ -55,13 +67,17 @@ string htmlEscape(const string& s) {
 // a long string like: "session=abc123; theme=light" )
 string getCookie(const string& name) {
     const char* cookies = getenv("HTTP_COOKIE");
-    if (!cookies) return "";
+    if (!cookies) {
+        return "";
+    }
     
     string cookieStr = cookies;
     string searchStr = name + "=";
     size_t pos = cookieStr.find(searchStr);
     
-    if (pos == string::npos) return "";
+    if (pos == string::npos) {
+        return "";
+    }
     
     pos += searchStr.length();
     size_t endPos = cookieStr.find(";", pos);
@@ -123,7 +139,9 @@ string hashingPass(const string& password){
 // Also, if there is no key it returns an empty string ""
 string getValue(const string& data, const string& key) {
     size_t pos = data.find(key + "=");
-    if (pos == string::npos) return "";
+    if (pos == string::npos) {
+        return "";
+    }
     
     pos += key.length() + 1;
     size_t endPos = data.find("&", pos);
@@ -251,7 +269,9 @@ string createSession(MYSQL* conn, int userId) {
     }
     
     MYSQL_RES* result = mysql_store_result(conn);
-    if (!result) return "";
+    if (!result) {
+        return "";
+    }
     
     MYSQL_ROW row = mysql_fetch_row(result);
     string sessionId = "";
