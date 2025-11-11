@@ -12,6 +12,8 @@
 #include <string>
 #include <cstdlib>
 #include <ctime>
+#include <iomanip>
+#include <regex>
 #include <mysql/mysql.h>
 using namespace std;
 
@@ -123,7 +125,7 @@ string urlDecode(const string& str) {
 
 // SHA-256 HASH
 string hashingPass(const string& password){
-    unsgned char hash[SHA256_DIGEST_LENGTH];
+    unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256(reinterpret_cast<const unsigned char*>(password.c_str()), passwpord.length(), hash);
 
     stringsteasm ss;
