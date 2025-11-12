@@ -1,3 +1,66 @@
-this is the full auction system: we could submit assignment 3 just by omitting the listings.cpp
-file. to submit assignment 4 we just need to remove the "(Coming Soon)" words from the 
-navigation links in index.cpp,trade.cpp and transactions.cpp
+All-In Dragons — Auction System (FullProject)
+
+## Overview
+--------
+This folder contains a small C++ CGI-based auction website used for class assignments.
+
+- `index.cpp`         — Home page and login form
+- `style.cpp`         — Dynamically generated CSS (built as `style.cgi`)
+- `login.cpp`         — Login / registration / logout and session creation
+- `listings.cpp`      — Listings of auctions (can be omitted for some submissions)
+- `trade.cpp`         — Create auctions and place bids
+- `transactions.cpp`  — Shows user transaction history
+- `common.cpp`        — Shared helpers, DB credentials and session helpers
+
+## Requirements
+------------
+- A Linux system with g++ (C++11), make
+- MySQL server (or MariaDB) and the client development headers
+- OpenSSL dev headers (the code uses SHA256 in `common.cpp`)
+- Apache (or any CGI-capable web server) for production testing
+
+Install dependencies
+```
+sudo apt update
+sudo apt install build-essential make g++ libmysqlclient-dev libssl-dev apache2
+```
+
+## Build (recommended)
+-------------------
+From inside this `FullProject` directory simply run:
+
+```bash
+make all
+```
+If you prefer manual compilation, these commands match the Makefile:
+
+```bash
+g++ -std=c++11 -Wall -o index.cgi index.cpp -lmysqlclient -lssl -lcrypto
+g++ -std=c++11 -Wall -o style.cgi style.cpp
+g++ -std=c++11 -Wall -o login.cgi login.cpp -lmysqlclient -lssl -lcrypto
+g++ -std=c++11 -Wall -o listings.cgi listings.cpp -lmysqlclient -lssl -lcrypto
+g++ -std=c++11 -Wall -o trade.cgi trade.cpp -lmysqlclient -lssl -lcrypto
+g++ -std=c++11 -Wall -o transactions.cgi transactions.cpp -lmysqlclient -lssl -lcrypto
+chmod 755 *.cgi
+```
+
+Note: the `-lssl -lcrypto` flags are required when linking code that calls OpenSSL SHA256 functions.
+If you see linker errors mentioning `DSO missing from command line` or undefined SHA256 symbols,
+re-run the link with `-lssl -lcrypto` (or `make all MYSQL_LIBS='-lmysqlclient -lssl -lcrypto'`).
+
+Database setup
+--------------
+The schema used by the application is in `schema.sql` (same directory).
+-------------------------------
+
+Troubleshooting
+---------------
+- Linker error 'DSO missing from command line' or undefined `SHA256`: add `-lssl -lcrypto` to your link flags.
+- Missing header `mysql/mysql.h`: install the `libmysqlclient-dev` (or `mariadb-connector-c-devel`) package.
+- Missing header `openssl/sha.h`: install `libssl-dev` (or `openssl-devel` on RHEL).
+- If Apache shows 500 errors, check `/var/log/apache2/error.log` (or your distro's httpd log).
+- SELinux systems may require `chcon -t httpd_sys_script_exec_t /var/www/html/cgi-bin/*.cgi` and booleans to allow DB connections.
+
+Authors
+-------
+Guillermo Rojas, Benjamin Ezike, Gabriel Cruz-Chavez, Paul Porter (All-In Dragons team)

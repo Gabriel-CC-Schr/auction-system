@@ -6,13 +6,19 @@
 // This file contains all shared helper functions and constants
 // used across multiple CGI programs in the auction system
 
-#include "common.hpp"
 
 #include <iostream>
 #include <string>
 #include <cstdlib>
 #include <ctime>
+#include <iomanip>
+#include <regex>
 #include <mysql/mysql.h>
+#include <sstream>
+#include <openssl/sha.h>
+
+
+
 using namespace std;
 
 // DATABASE CREDENTIALS:
@@ -39,12 +45,24 @@ string htmlEscape(const string& s) {
     string r;
     r.reserve(s.size() * 2);
     for (char c : s) {
-        if (c == '&') r += "&amp;";
-        else if (c == '<') r += "&lt;";
-        else if (c == '>') r += "&gt;";
-        else if (c == '"') r += "&quot;";
-        else if (c == '\'') r += "&#39;";
-        else r += c;
+        if (c == '&') {
+            r += "&amp;";
+        }
+        else if (c == '<') {
+            r += "&lt;";
+        }
+        else if (c == '>') {
+            r += "&gt;";
+        }
+        else if (c == '"') {
+            r += "&quot;";
+        }
+        else if (c == '\'') {
+            r += "&#39;";
+        }
+        else {
+            r += c;
+        }
     }
     return r;
 }
@@ -55,13 +73,17 @@ string htmlEscape(const string& s) {
 // a long string like: "session=abc123; theme=light" )
 string getCookie(const string& name) {
     const char* cookies = getenv("HTTP_COOKIE");
-    if (!cookies) return "";
+    if (!cookies) {
+        return "";
+    }
     
     string cookieStr = cookies;
     string searchStr = name + "=";
     size_t pos = cookieStr.find(searchStr);
     
-    if (pos == string::npos) return "";
+    if (pos == string::npos) {
+        return "";
+    }
     
     pos += searchStr.length();
     size_t endPos = cookieStr.find(";", pos);
@@ -107,10 +129,10 @@ string urlDecode(const string& str) {
 
 // SHA-256 HASH
 string hashingPass(const string& password){
-    unsgned char hash[SHA256_DIGEST_LENGTH];
-    SHA256(reinterpret_cast<const unsigned char*>(password.c_str()), passwpord.length(), hash);
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char*>(password.c_str()), password.length(), hash);
 
-    stringsteasm ss;
+    stringstream ss;
     for(int i = 0; i < SHA256_DIGEST_LENGTH; i++){
         ss << hex << setw(2) << setfill('0') << static_cast<int>(hash[i]);
     }
@@ -123,7 +145,9 @@ string hashingPass(const string& password){
 // Also, if there is no key it returns an empty string ""
 string getValue(const string& data, const string& key) {
     size_t pos = data.find(key + "=");
-    if (pos == string::npos) return "";
+    if (pos == string::npos) {
+        return "";
+    }
     
     pos += key.length() + 1;
     size_t endPos = data.find("&", pos);
@@ -251,7 +275,9 @@ string createSession(MYSQL* conn, int userId) {
     }
     
     MYSQL_RES* result = mysql_store_result(conn);
-    if (!result) return "";
+    if (!result) {
+        return "";
+    }
     
     MYSQL_ROW row = mysql_fetch_row(result);
     string sessionId = "";

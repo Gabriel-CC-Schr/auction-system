@@ -75,6 +75,8 @@ int main() {
         string action = getValue(postData, "action");     // "register" or "login"
         string email = getValue(postData, "email");
         string password = getValue(postData, "password");
+
+        string hashedPassword = hashingPass(password);
         
         // sql injection prevention:
         // escape email and password before using in SQL 
