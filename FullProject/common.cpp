@@ -14,6 +14,11 @@
 #include <iomanip>
 #include <regex>
 #include <mysql/mysql.h>
+#include <sstream>
+#include <openssl/sha.h>
+
+
+
 using namespace std;
 
 // DATABASE CREDENTIALS:
@@ -125,9 +130,9 @@ string urlDecode(const string& str) {
 // SHA-256 HASH
 string hashingPass(const string& password){
     unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256(reinterpret_cast<const unsigned char*>(password.c_str()), passwpord.length(), hash);
+    SHA256(reinterpret_cast<const unsigned char*>(password.c_str()), password.length(), hash);
 
-    stringsteasm ss;
+    stringstream ss;
     for(int i = 0; i < SHA256_DIGEST_LENGTH; i++){
         ss << hex << setw(2) << setfill('0') << static_cast<int>(hash[i]);
     }
