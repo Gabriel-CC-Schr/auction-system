@@ -6,7 +6,6 @@
 // This file contains all shared helper functions and constants
 // used across multiple CGI programs in the auction system
 
-#include "common.hpp"
 
 #include <iostream>
 #include <string>
